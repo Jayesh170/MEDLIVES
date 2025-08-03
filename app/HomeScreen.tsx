@@ -5,6 +5,7 @@ import { format, subDays } from 'date-fns';
 import React, { useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddOrder from './AddOrder';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -38,6 +39,7 @@ const HomeScreen = () => {
   const [filteredOrders, setFilteredOrders] = useState(ordersData);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showAddOrder, setShowAddOrder] = useState(false);
 
   const onChangeDate = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -60,7 +62,12 @@ const HomeScreen = () => {
       targetDate = date;
     }
     const formatted = format(targetDate, 'dd/MM/yy');
-    setFilteredOrders(ordersData.filter(order => order.date === formatted));
+    setFilteredOrders(orders.filter(order => order.date === formatted));
+  };
+
+  const handleAddOrder = (newOrder: any) => {
+    setOrders(prevOrders => [newOrder, ...prevOrders]);
+    setFilteredOrders(prevFiltered => [newOrder, ...prevFiltered]);
   };
 
   const renderOrderCard = ({ item }: any) => (
@@ -159,7 +166,7 @@ const HomeScreen = () => {
         <TouchableOpacity style={styles.bottomIcon}>
           <Ionicons name="search" size={24 * scale} color="#0A174E" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddOrder(true)}>
           <Ionicons name="add" size={32 * scale} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomIcon}>
@@ -169,6 +176,14 @@ const HomeScreen = () => {
           <FontAwesome name="user" size={24 * scale} color="#0A174E" />
         </TouchableOpacity>
       </View>
+      
+      {/* AddOrder Modal */}
+      <AddOrder
+        visible={showAddOrder}
+        onClose={() => setShowAddOrder(false)}
+        onAddOrder={handleAddOrder}
+        existingOrdersCount={orders.length}
+      />
     </SafeAreaView>
   );
 };
