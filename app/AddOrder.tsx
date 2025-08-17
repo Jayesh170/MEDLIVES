@@ -3,7 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { FieldArray, Formik } from 'formik';
 import React, { useState } from 'react';
-import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
@@ -17,6 +17,7 @@ const customers = [
   { name: 'PRIYA SHARMA', address: 'B-303 SUNSHINE', contactNumber: '9123456780' },
 ];
 
+// Societies data structure
 const societies = [
   {
     name: 'Shantinagar',
@@ -72,10 +73,14 @@ const orderValidationSchema = Yup.object().shape({
   discountPercent: Yup.number().min(0).max(100),
 });
 
+type AddOrderRouteParams = {
+  onAddOrder?: (values: any, helpers: { resetForm: () => void }) => void;
+};
+
 type AddOrderProps = {
   visible: boolean;
   onClose: () => void;
-  onAddOrder: (orderData: any) => void;
+  onAddOrder: (values: any) => void;
   existingOrdersCount: number;
 };
 
@@ -98,7 +103,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
     
     const address = formValues.society === 'Others' 
       ? formValues.address 
-      : `${formValues.society} - ${formValues.wing} - ${formValues.flatNo}`;
+      : `${formValues.flatNo} ${formValues.wing} ${formValues.society}`;
     
     return {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -106,14 +111,24 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       orderId: (existingOrdersCount + 1).toString(),
       address,
       contactNumber: formValues.contactNumber,
-      customerName: formValues.customerName,
-      medications: formValues.medications,
+      customerName: formValues.customerName.toUpperCase(),
+      medications: formValues.medications.map((med: any) => ({
+        ...med,
+        price: parseFloat(med.price),
+      })),
       totalAmount,
       discount,
       discountPercent: formValues.discountPercent || 0,
       payableAmount,
       status: 'pending'
     };
+  };
+
+  const resetForm = () => {
+    setCustomerSearch('');
+    setSocietySearch('');
+    setWingSearch('');
+    setFlatSearch('');
   };
 
   return (
@@ -145,24 +160,39 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
             }}
             validationSchema={orderValidationSchema}
             onSubmit={(values, helpers) => {
-              const validMedications = values.medications.filter(med => med.name && med.name.trim() !== '');
-              if (validMedications.length === 0) return;
+              // Filter out empty medications
+              const validMedications = values.medications.filter(
+                med => med.name && med.name.trim() !== '' && med.qty > 0 && med.price >= 0
+              );
+              
+              if (validMedications.length === 0) {
+                Alert.alert('Error', 'Please add at least one medication');
+                return;
+              }
               
               const submitValues = {
                 ...values,
                 medications: validMedications
               };
               
-              const orderData = transformOrderData(submitValues);
-              onAddOrder(orderData);
-              helpers.resetForm();
-              onClose();
+              try {
+                const orderData = transformOrderData(submitValues);
+                onAddOrder(orderData);
+                helpers.resetForm();
+                resetForm();
+                onClose();
+              } catch (error) {
+                Alert.alert('Error', 'Failed to create order. Please try again.');
+                console.error('Order creation error:', error);
+              }
             }}
           >
             {({ values, handleChange, handleBlur, setFieldValue, handleSubmit, errors, touched }) => {
+              // Find selected society and wing objects
               const selectedSociety = societies.find(s => s.name === values.society);
               const selectedWing = selectedSociety?.wings.find(w => w.name === values.wing);
 
+              // Autocomplete for society
               const societyOptions = [
                 ...societies
                   .filter(s =>
@@ -173,6 +203,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                 'Others',
               ];
 
+              // Autocomplete for wing
               const wingOptions = selectedSociety && values.society !== 'Others'
                 ? selectedSociety.wings
                     .filter(w =>
@@ -182,6 +213,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     .map(w => w.name)
                 : [];
 
+              // Autocomplete for flatNo
               const flatOptions = selectedWing && values.society !== 'Others'
                 ? selectedWing.flats.filter(f =>
                     flatSearch.length === 0 ||
@@ -189,14 +221,17 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                   )
                 : [];
 
+              // Autofill on customer selection
               const handleCustomerSelect = (c: any) => {
                 setFieldValue('customerName', c.name);
                 setFieldValue('contactNumber', c.contactNumber);
                 setCustomerSearch('');
+                // Try to parse address for society/wing/flat
                 const addr = c.address || '';
                 let foundSociety = societies.find(s => addr.toLowerCase().includes(s.name.toLowerCase()));
                 if (foundSociety) {
                   setFieldValue('society', foundSociety.name);
+                  // Try to find wing and flat
                   let foundWing = foundSociety.wings.find(w => addr.toUpperCase().includes(w.name.toUpperCase()));
                   if (foundWing) {
                     setFieldValue('wing', foundWing.name);
@@ -214,6 +249,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
 
               return (
                 <>
+                  {/* Customer Name Dropdown with Search */}
                   <Text style={styles.inputLabel}>Customer Name</Text>
                   <View style={{ position: 'relative' }}>
                     <TextInput
@@ -225,7 +261,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                         setCustomerSearch(text);
                         const found = customers.find(c => c.name.toLowerCase() === text.toLowerCase());
                         if (found) {
-                            handleCustomerSelect(found);
+                          handleCustomerSelect(found);
                         }
                       }}
                       onBlur={handleBlur('customerName')}
@@ -235,7 +271,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     {customerSearch.length > 0 && customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).length > 0 && (
                       <View style={styles.dropdownList}>
                         {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).map((c, idx) => (
-                            <TouchableOpacity key={`customer-${c.name}-${idx}`} onPress={() => handleCustomerSelect(c)}>
+                          <TouchableOpacity key={`customer-${c.name}-${idx}`} onPress={() => handleCustomerSelect(c)}>
                             <Text style={styles.dropdownItem}>{c.name}</Text>
                           </TouchableOpacity>
                         ))}
@@ -244,6 +280,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                   </View>
                   {touched.customerName && errors.customerName && <Text style={styles.errorText}>{errors.customerName}</Text>}
 
+                  {/* Society Dropdown with Autocomplete */}
                   <Text style={styles.inputLabel}>Society</Text>
                   <View style={{ position: 'relative' }}>
                     <TextInput
@@ -253,6 +290,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                       onChangeText={text => {
                         setFieldValue('society', text);
                         setSocietySearch(text);
+                        // Reset dependent fields
                         setFieldValue('wing', '');
                         setFieldValue('flatNo', '');
                         setFieldValue('address', '');
@@ -279,6 +317,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                   </View>
                   {touched.society && errors.society && <Text style={styles.errorText}>{errors.society}</Text>}
 
+                  {/* Wing Dropdown (if not Others) */}
                   {values.society && values.society !== 'Others' && (
                     <>
                       <Text style={styles.inputLabel}>Wing</Text>
@@ -314,6 +353,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     </>
                   )}
 
+                  {/* Flat No Dropdown/Input (if not Others) */}
                   {values.society && values.society !== 'Others' && values.wing && (
                     <>
                       <Text style={styles.inputLabel}>Flat No</Text>
@@ -347,6 +387,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     </>
                   )}
 
+                  {/* Address Input (if Others) */}
                   {values.society === 'Others' && (
                     <>
                       <Text style={styles.inputLabel}>Address</Text>
@@ -362,6 +403,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     </>
                   )}
 
+                  {/* Contact Number */}
                   <Text style={styles.inputLabel}>Contact Number</Text>
                   <TextInput
                     style={styles.inputBox}
@@ -375,43 +417,43 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                   />
                   {touched.contactNumber && errors.contactNumber && <Text style={styles.errorText}>{errors.contactNumber}</Text>}
 
+                  {/* Order Date */}
                   <Text style={styles.inputLabel}>Order Date</Text>
-                  <TouchableOpacity
-                    style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        // For web, we'll use a simple date input
-                        const input = document.createElement('input');
-                        input.type = 'date';
-                        input.onchange = (e: any) => {
-                          const date = new Date(e.target.value);
-                          setFieldValue('orderDate', date);
-                        };
-                        input.click();
-                      } else {
-                        setShowDatePicker(true);
-                      }
-                    }}
-                  >
-                    <Text style={{ flex: 1, color: values.orderDate ? '#0A174E' : '#BFC3C9', fontFamily: 'WorkSans' }}>{values.orderDate ? format(values.orderDate, 'dd/MM/yyyy') : 'Select order date'}</Text>
-                    <Ionicons name="calendar" size={20 * scale} color="#0A174E" style={styles.dateIcon} />
-                  </TouchableOpacity>
-                  
-                  {showDatePicker && Platform.OS !== 'web' && (
-                    <DateTimePicker
-                      value={values.orderDate || new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={(event: any, selectedDate?: Date) => {
-                        setShowDatePicker(false);
-                        if (selectedDate) {
-                          setFieldValue('orderDate', selectedDate);
-                        }
-                      }}
-                      maximumDate={new Date()}
-                    />
-                  )}
+                    <TouchableOpacity
+                      style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text
+                        style={{
+                          flex: 1,
+                          color: values.orderDate ? '#0A174E' : '#BFC3C9',
+                          fontFamily: 'WorkSans',
+                        }}
+                      >
+                        {values.orderDate ? format(values.orderDate, 'dd/MM/yyyy') : 'Select order date'}
+                      </Text>
+                      <Ionicons
+                        name="calendar"
+                        size={20 * scale}
+                        color="#0A174E"
+                        style={styles.dateIcon}
+                      />
+                    </TouchableOpacity>                    
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={values.orderDate || new Date()}
+                        mode="date"
+                        display="default"   // "default" | "spinner" | "calendar"
+                        onChange={(event, selectedDate) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            setFieldValue('orderDate', selectedDate);
+                         }
+                        }}
+                      />
+                    )}
 
+                  {/* Medications Section */}
                   <Text style={styles.sectionTitle}>Medications</Text>
                   <View style={styles.medHeaderRow}>
                     <View style={styles.medHeaderLeft}>
@@ -427,6 +469,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     name="medications"
                     render={arrayHelpers => (
                       <>
+                        {/* Filter out invalid medications */}
                         {values.medications.filter(med => med.name && med.qty >= 1).map((med, idx) => (
                           <Swipeable
                             key={`med-${idx}-${med.name}-${med.qty}`}
@@ -460,6 +503,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                                 setShowMedModal(true);
                               }}
                             >
+                              {/* Use fixed width for each column for alignment */}
                               <View style={[styles.medRowLeft, { flexDirection: 'row', alignItems: 'center', flex: 1.5 }]}>  
                                 <Text style={[styles.medNameDisplay, { flex: 2 }]}> 
                                   {med.name.length > 12 ? med.name.slice(0, 12) : med.name}
@@ -485,8 +529,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                         }}>
                           <Text style={styles.addMedBtnText}>+ Add Medication</Text>
                         </TouchableOpacity>
-                        
-                        {/* Medication Modal */}
+                        {/* Medication Modal (full form) */}
                         <Modal
                           visible={showMedModal}
                           animationType="slide"
@@ -567,7 +610,8 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                       </>
                     )}
                   />
-
+                  
+                  {/* Order Summary */}
                   <Text style={styles.sectionTitle}>Order Summary</Text>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Subtotal</Text>
@@ -594,8 +638,40 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     <Text style={styles.totalValue}>₹{(values.medications.reduce((sum: number, med: any) => sum + med.qty * parseFloat(med.price), 0) - (values.medications.reduce((sum: number, med: any) => sum + med.qty * parseFloat(med.price), 0) * (values.discountPercent || 0) / 100)).toFixed(2)}</Text>
                   </View>
                   
+                  {/* Debug: Show validation errors */}
+                  {Object.keys(errors).length > 0 && (
+                    <View style={{ backgroundColor: '#ffebee', padding: 10, borderRadius: 8, marginBottom: 10 }}>
+                      <Text style={{ color: '#c62828', fontWeight: 'bold' }}>Validation Errors:</Text>
+                      {Object.entries(errors).map(([key, value]) => (
+                        <Text key={key} style={{ color: '#c62828' }}>{key}: {String(value)}</Text>
+                      ))}
+                    </View>
+                  )}
+                  
+                  {/* Submit Button */}
                   <View style={styles.submitBtnRow}>
-                    <TouchableOpacity style={styles.submitBtn} onPress={() => handleSubmit()}>
+                    <TouchableOpacity style={styles.submitBtn} onPress={() => {
+                      console.log('Submit button pressed');
+                      console.log('Form values:', values);
+                      console.log('Form errors:', errors);
+                      
+                      // Filter out empty medications before submission
+                      const validMedications = values.medications.filter(med => med.name && med.name.trim() !== '');
+                      if (validMedications.length === 0) {
+                        console.log('No valid medications found');
+                        Alert.alert('Error', 'Please add at least one medication');
+                        return;
+                      }
+                      
+                      // Create a new values object with only valid medications
+                      const submitValues = {
+                        ...values,
+                        medications: validMedications
+                      };
+                      
+                      console.log('Submitting with valid medications:', submitValues);
+                      handleSubmit();
+                    }}>
                       <Text style={styles.submitBtnText}>Submit Order</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
@@ -946,4 +1022,4 @@ const styles = StyleSheet.create({
     right: 24 * scale,
     top: 18 * scale,
   },
-}); 
+});
