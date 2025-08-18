@@ -7,41 +7,13 @@ import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
+import { societies, customers } from './constants/societies';
+import DatabaseService from './services/DatabaseService';
 
 const { width } = require('react-native').Dimensions.get('window');
 const scale = width / 320;
 
-const customers = [
-  { name: 'JAYESH DANGI', address: 'F-101 SHANTINAGAR', contactNumber: '8888133849' },
-  { name: 'RAVI PATEL', address: 'A-202 GREEN PARK', contactNumber: '9876543210' },
-  { name: 'PRIYA SHARMA', address: 'B-303 SUNSHINE', contactNumber: '9123456780' },
-];
 
-// Societies data structure
-const societies = [
-  {
-    name: 'Shantinagar',
-    wings: [
-      { name: 'A', flats: ['101', '102', '103', '104'] },
-      { name: 'B', flats: ['201', '202', '203', '204'] },
-      { name: 'C', flats: ['301', '302', '303', '304'] },
-    ],
-  },
-  {
-    name: 'Green Park',
-    wings: [
-      { name: 'A', flats: ['101', '102', '103'] },
-      { name: 'B', flats: ['201', '202', '203'] },
-    ],
-  },
-  {
-    name: 'Sunshine',
-    wings: [
-      { name: 'A', flats: ['101', '102'] },
-      { name: 'B', flats: ['201', '202'] },
-    ],
-  },
-];
 
 const orderValidationSchema = Yup.object().shape({
   customerName: Yup.string().required('Customer name is required'),
@@ -105,6 +77,8 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       ? formValues.address 
       : `${formValues.flatNo} ${formValues.wing} ${formValues.society}`;
     
+    const society = formValues.society === 'Others' ? 'Others' : formValues.society;
+    
     return {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       date: format(formValues.orderDate, 'dd/MM/yy'),
@@ -112,6 +86,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       address,
       contactNumber: formValues.contactNumber,
       customerName: formValues.customerName.toUpperCase(),
+      society,
       medications: formValues.medications.map((med: any) => ({
         ...med,
         price: parseFloat(med.price),
@@ -120,7 +95,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       discount,
       discountPercent: formValues.discountPercent || 0,
       payableAmount,
-      status: 'pending'
+      status: 'pending' as const
     };
   };
 
@@ -159,7 +134,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
               discountPercent: 0,
             }}
             validationSchema={orderValidationSchema}
-            onSubmit={(values, helpers) => {
+            onSubmit={async (values, helpers) => {
               // Filter out empty medications
               const validMedications = values.medications.filter(
                 med => med.name && med.name.trim() !== '' && med.qty > 0 && med.price >= 0
@@ -177,10 +152,18 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
               
               try {
                 const orderData = transformOrderData(submitValues);
-                onAddOrder(orderData);
-                helpers.resetForm();
-                resetForm();
-                onClose();
+                const dbService = DatabaseService.getInstance();
+                const success = await dbService.addOrder(orderData);
+                
+                if (success) {
+                  onAddOrder(orderData);
+                  helpers.resetForm();
+                  resetForm();
+                  onClose();
+                  Alert.alert('Success', 'Order added successfully!');
+                } else {
+                  Alert.alert('Error', 'Failed to save order to database. Please try again.');
+                }
               } catch (error) {
                 Alert.alert('Error', 'Failed to create order. Please try again.');
                 console.error('Order creation error:', error);
