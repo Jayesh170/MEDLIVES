@@ -388,7 +388,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                   )}
 
                   {/* Address Input (if Others) */}
-                  {values.society === 'Others' && (
+                  {values.society === 'Society' && (
                     <>
                       <Text style={styles.inputLabel}>Address</Text>
                       <TextInput
