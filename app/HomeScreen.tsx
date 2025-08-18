@@ -2,72 +2,89 @@ import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
-import React, { useState } from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddOrder from './AddOrder';
+import DatabaseService, { Order } from './services/DatabaseService';
+import { societies } from './constants/societies';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
 
-const ordersData = [
-  {
-    id: '1',
-    date: '19/11/24',
-    orderId: '1',
-    address: 'F-101 SHANTINAGAR',
-    contactNumber: '8888133849',
-    customerName: 'JAYESH DANGI',
-    medications: [
-      { name: 'Dolo', qty: 2, price: 150 },
-      { name: 'Cyclopalm', qty: 1, price: 250 },
-      { name: 'Manforce-Family-Pack', qty: 1, price: 650 },
-    ],
-    totalAmount: 1100,
-    discount: 165,
-    discountPercent: 15,
-    payableAmount: 935,
-    status: 'paid',
-  },
-  // Add more mock orders as needed
-];
-
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const [tab, setTab] = useState('today');
-  const [orders, setOrders] = useState(ordersData);
-  const [filteredOrders, setFilteredOrders] = useState(ordersData);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddOrder, setShowAddOrder] = useState(false);
+  const [selectedSociety, setSelectedSociety] = useState<string>('All');
+  const [showSocietyFilter, setShowSocietyFilter] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load orders from database on component mount
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  // Filter orders when tab, date, or society changes
+  useEffect(() => {
+    filterOrders();
+  }, [orders, tab, date, selectedSociety]);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const dbService = DatabaseService.getInstance();
+      await dbService.initializeSampleData(); // Initialize sample data if needed
+      const allOrders = await dbService.getAllOrders();
+      setOrders(allOrders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterOrders = () => {
+    let targetDate: Date;
+    if (tab === 'today') {
+      targetDate = new Date();
+    } else if (tab === 'yesterday') {
+      targetDate = subDays(new Date(), 1);
+    } else {
+      targetDate = date;
+    }
+    
+    const formatted = format(targetDate, 'dd/MM/yy');
+    let filtered = orders.filter(order => order.date === formatted);
+    
+    // Apply society filter
+    if (selectedSociety !== 'All') {
+      filtered = filtered.filter(order => order.society === selectedSociety);
+    }
+    
+    setFilteredOrders(filtered);
+  };
 
   const onChangeDate = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setDate(selectedDate);
-      // Filter orders by selected date
-      const formatted = format(selectedDate, 'dd/MM/yy');
-      setFilteredOrders(ordersData.filter(order => order.date === formatted));
+      setTab('custom'); // Set to custom when date picker is used
     }
   };
 
   const handleTabChange = (selectedTab: string) => {
     setTab(selectedTab);
-    let targetDate: Date;
-    if (selectedTab === 'today') {
-      targetDate = new Date();
-    } else if (selectedTab === 'yesterday') {
-      targetDate = subDays(new Date(), 1);
-    } else {
-      targetDate = date;
-    }
-    const formatted = format(targetDate, 'dd/MM/yy');
-    setFilteredOrders(orders.filter(order => order.date === formatted));
+    // filterOrders will be called automatically by useEffect
   };
 
-  const handleAddOrder = (newOrder: any) => {
-    setOrders(prevOrders => [newOrder, ...prevOrders]);
-    setFilteredOrders(prevFiltered => [newOrder, ...prevFiltered]);
+  const handleAddOrder = async (newOrder: Order) => {
+    // Reload orders from database to ensure we have the latest data
+    await loadOrders();
   };
 
   const renderOrderCard = ({ item }: any) => (
@@ -117,9 +134,18 @@ const HomeScreen = () => {
           </View>
           <Text style={styles.headerTitle}>OMKAR MEDICAL</Text>
         </View>
-        <TouchableOpacity style={styles.toggleBtn}>
-          <Ionicons name="toggle" size={32 * scale} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={styles.filterBtn} 
+            onPress={() => setShowSocietyFilter(true)}
+          >
+            <Ionicons name="filter" size={20 * scale} color="#fff" />
+            <Text style={styles.filterText}>{selectedSociety}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toggleBtn}>
+            <Ionicons name="toggle" size={32 * scale} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -146,18 +172,33 @@ const HomeScreen = () => {
         {date.toLocaleDateString()}
       </Text>
       {/* Orders List */}
-      <FlatList
-        data={filteredOrders}
-        keyExtractor={item => item.id}
-        renderItem={renderOrderCard}
-        contentContainerStyle={styles.listContent}
-        ListFooterComponent={<>
-          <View style={styles.card} />
-          <View style={styles.card} />
-        </>}
-        ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#888', marginTop: 40, fontSize: 16 }}>No orders found</Text>}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#888', fontSize: 16 }}>Loading orders...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredOrders}
+          keyExtractor={item => item.id}
+          renderItem={renderOrderCard}
+          contentContainerStyle={styles.listContent}
+          ListFooterComponent={<>
+            <View style={styles.card} />
+            <View style={styles.card} />
+          </>}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', marginTop: 40 }}>
+              <Text style={{ textAlign: 'center', color: '#888', fontSize: 16, marginBottom: 8 }}>
+                No orders found
+              </Text>
+              <Text style={{ textAlign: 'center', color: '#888', fontSize: 14 }}>
+                {selectedSociety !== 'All' ? `for ${selectedSociety}` : 'for the selected date'}
+              </Text>
+            </View>
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.bottomIcon}>
@@ -177,6 +218,76 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
       
+      {/* Society Filter Modal */}
+      <Modal
+        visible={showSocietyFilter}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSocietyFilter(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filter by Society</Text>
+            <ScrollView style={styles.societyList}>
+              <TouchableOpacity
+                style={[
+                  styles.societyItem,
+                  selectedSociety === 'All' && styles.societyItemSelected
+                ]}
+                onPress={() => {
+                  setSelectedSociety('All');
+                  setShowSocietyFilter(false);
+                }}
+              >
+                <Text style={[
+                  styles.societyItemText,
+                  selectedSociety === 'All' && styles.societyItemTextSelected
+                ]}>All Societies</Text>
+              </TouchableOpacity>
+              {societies.map((society) => (
+                <TouchableOpacity
+                  key={society.name}
+                  style={[
+                    styles.societyItem,
+                    selectedSociety === society.name && styles.societyItemSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedSociety(society.name);
+                    setShowSocietyFilter(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.societyItemText,
+                    selectedSociety === society.name && styles.societyItemTextSelected
+                  ]}>{society.name}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[
+                  styles.societyItem,
+                  selectedSociety === 'Others' && styles.societyItemSelected
+                ]}
+                onPress={() => {
+                  setSelectedSociety('Others');
+                  setShowSocietyFilter(false);
+                }}
+              >
+                <Text style={[
+                  styles.societyItemText,
+                  selectedSociety === 'Others' && styles.societyItemTextSelected
+                ]}>Others</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowSocietyFilter(false)}
+            >
+              <Text style={styles.modalCloseBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* AddOrder Modal */}
       <AddOrder
         visible={showAddOrder}
@@ -352,5 +463,79 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12 * scale,
+    paddingHorizontal: 8 * scale,
+    paddingVertical: 4 * scale,
+    marginRight: 8 * scale,
+  },
+  filterText: {
+    color: '#fff',
+    fontSize: 12 * scale,
+    fontWeight: 'bold',
+    marginLeft: 4 * scale,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20 * scale,
+    padding: 24 * scale,
+    width: '80%',
+    maxHeight: '60%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18 * scale,
+    fontWeight: 'bold',
+    color: '#0A174E',
+    marginBottom: 16 * scale,
+    textAlign: 'center',
+  },
+  societyList: {
+    maxHeight: 300 * scale,
+  },
+  societyItem: {
+    paddingVertical: 12 * scale,
+    paddingHorizontal: 16 * scale,
+    borderRadius: 8 * scale,
+    marginBottom: 8 * scale,
+    backgroundColor: '#F2F6FA',
+  },
+  societyItemSelected: {
+    backgroundColor: '#2EC4D6',
+  },
+  societyItemText: {
+    fontSize: 16 * scale,
+    color: '#0A174E',
+    fontWeight: '500',
+  },
+  societyItemTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  modalCloseBtn: {
+    backgroundColor: '#2EC4D6',
+    borderRadius: 12 * scale,
+    paddingVertical: 12 * scale,
+    alignItems: 'center',
+    marginTop: 16 * scale,
+  },
+  modalCloseBtnText: {
+    color: '#fff',
+    fontSize: 16 * scale,
+    fontWeight: 'bold',
   },
 }); 
