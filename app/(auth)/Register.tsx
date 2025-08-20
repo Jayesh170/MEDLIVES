@@ -1,124 +1,136 @@
-import GoogleIcon from '@/assets/svg/GoogleIcon';
-import Register_logo from '@/assets/svg/Register_logo';
-import { router } from 'expo-router';
-import React, { useRef } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import Logo from '../../assets/svg/Logo'; // Your MedDel cross heart logo
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const scale = width / 320;
 
+const lightTheme = {
+  backgroundColor: '#FFFFFF',
+  titleColor: '#37b9c5',
+  subTextColor: '#283638',
+  signupButtonColor: '#1f393dff',
+  signupbutonText: "#FFF"
+};
+
+const darkTheme = {
+  backgroundColor: '#1F1F39',
+  titleColor: '#37b9c5',
+  subTextColor: '#37b9c5',
+  signupButtonColor: '#FFF',
+  signupbutonText : '#1F1F39'
+};
+
 const Register = () => {
-  const timerRef = useRef<number | null>(null);
-  // useEffect(() => {
-  //   timerRef.current = setTimeout(() => {
-  //     router.push('/(auth)/LoginSuccess');
-  //   }, 3000);
-  // }, []);
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
-    <View style={styles.container}>
-        <View style={styles.InnerContainer}>
-            <View style={styles.imgContainer}>
-            <Register_logo size={250 * scale}/>
-            </View>
-            <View >
-              <Text style={styles.txtContainer}>REGISTER</Text>
-            </View>
+    <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+      {/* Main Content Area */}
+      <View style={styles.mainContent}>
+        {/* App Logo */}
+        <View style={styles.imageContainer}>
+          <Logo size={180 * scale} />
         </View>
-        <View style={styles.OuterContainer}>
-          <TouchableOpacity 
-          onPress={() => {
-            router.push('/(auth)/PhoneRegister')
-          }}
-          >
-              <View style={styles.phoneOuter}>
-                <Text style={styles.phoneTxt}>
-                  PHONE NO
-                </Text>
-              </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-              onPress={()=>{
-                router.push('/(auth)/EmailRegister')
-              }}
-              >
-              <View style={styles.emailOuter}>
-              <View style={styles.GoogleLogo}>
-              <GoogleIcon size={ 30 * scale}/>
-              </View>
-              <Text style={styles.emailTxt}>
-                EMAIL ID
-              </Text>
-            </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-            onPress={()=>{
-              router.push('/(auth)/LoginPage')
-            }}
-            >
-              <Text style ={styles.loginText}>LOGIN</Text>
-            </TouchableOpacity>
+
+        {/* App Name and Description */}
+        <View style={styles.textContainer}>
+          <Text style={[styles.titleText, { color: theme.titleColor }]}>MedDel</Text>
+          <Text style={[styles.subText, { color: theme.subTextColor }]}>
+            Smart Order & Delivery{'\n'}Management for Pharmacies
+          </Text>
         </View>
+      </View>
+
+      {/* Buttons Section */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => router.push('/(auth)/LoginPage')}
+        >
+          <Text style={styles.loginButtonText}>Log In</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.signupButton, { backgroundColor: theme.signupButtonColor }]}
+          onPress={() => router.push('/(auth)/Register')}
+        >
+          <Text style={[styles.signupButtonText, {color : theme.signupbutonText}]}>Sign Up</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  )
-}
+  );
+};
 
 export default Register;
 
 const styles = StyleSheet.create({
-    container: {
-      flex:1,
-      backgroundColor: '#ffffff'
-    },
-    InnerContainer:{
-      paddingTop: 90 * scale,
-      justifyContent : 'center',
-      alignItems: 'center'
-    },
-    imgContainer :{
-    },
-    txtContainer :{
-      fontSize : 25 * scale,
-      fontWeight : 'bold',
-      padding : 10 * scale
-    },
-    OuterContainer:{
-      paddingTop: 70 * scale,
-      justifyContent: 'center',
-      alignItems : 'center'
-    },
-    emailOuter:{
-      flexDirection: 'row',
-      marginTop: 10 * scale,
-      height : 40 * scale,
-      width : 290 * scale,
-      backgroundColor: '#FFFFF',
-      justifyContent: 'center',
-      alignItems : 'center',
-      borderRadius : 50 * scale,
-      borderWidth: 0.5 * scale
-    },
-    emailTxt:{
-      fontSize : 15 * scale,
-      color : '#00000'
-    },
-    phoneOuter : {
-      height : 40 * scale,
-      width : 290 * scale,
-      backgroundColor: '#37b9c5',
-      justifyContent: 'center',
-      alignItems : 'center',
-      borderRadius : 40 * scale
-    },
-    phoneTxt :{
-      color : '#FFFF',
-      fontSize : 15 * scale ,
-    },
-    GoogleLogo :{
-      right: 10 * scale
-    },
-    loginText:{
-      color: '#37B9C5',
-      marginTop : 20 * scale,
-      fontSize: 17 * scale,
-    }
-}); 
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20 * scale,
+    paddingTop: height * 0.15,
+    paddingBottom: height * 0.05,
+  },
+  mainContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -height * 0.05,
+  },
+  imageContainer: {
+    marginBottom: 5 * scale,
+  },
+  textContainer: {
+    alignItems: 'center',
+    marginTop: 0,
+  },
+  titleText: {
+    fontSize: 32 * scale,
+    fontWeight: 'bold',
+    marginBottom: 8 * scale,
+    fontFamily: 'ManropeSemiBold',
+  },
+  subText: {
+    fontSize: 12 * scale,
+    textAlign: 'center',
+    lineHeight: 20 * scale,
+    fontWeight: '400',
+    fontFamily: 'ManropeBold',
+  },
+  buttonContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  loginButton: {
+    backgroundColor: '#37b9c5',
+    paddingVertical: 10 * scale,
+    borderRadius: 30 * scale,
+    width: '80%',
+    marginBottom: 12 * scale,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16 * scale,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: 'ManropeSemiBold'
+  },
+  signupButton: {
+    paddingVertical: 10 * scale,
+    borderRadius: 30 * scale,
+    width: '80%',
+  },
+  signupButtonText: {
+    color: '#fff',
+    fontSize: 16 * scale,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: 'ManropeSemiBold'
+  },
+});
