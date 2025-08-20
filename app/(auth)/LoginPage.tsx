@@ -1,5 +1,6 @@
 import Logo from "@/assets/svg/Logo";
 import GrowX_W from "@/assets/svg/WhiteScreen_logo/GrowX_white";
+import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import { Ionicons } from "@expo/vector-icons";
 import { Formik } from "formik";
 import React, { useState } from "react";
@@ -13,6 +14,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
@@ -20,7 +22,36 @@ import * as Yup from "yup";
 const { width } = Dimensions.get("window");
 const scale = width / 320;
 
-// ✅ Yup validation schema
+// ✅ Themes
+const lightTheme = {
+  backgroundColor: "#FFFFFF",
+  titleColor: "#37b9c5",
+  subTextColor: "#283638",
+  devTextColor: "#4A4A4A",
+  byTextColor: "#4A4A4A",
+  inputBg: "#e8faff",
+  inputBorder: "#37b9c5",
+  inputText: "#000",
+  placeholder: "#aaa",
+  buttonBg: "#37b9c5",
+  buttonText: "#fff",
+};
+
+const darkTheme = {
+  backgroundColor: "#1F1F39",
+  titleColor: "#37b9c5", // branding teal
+  subTextColor: "#ffff",
+  devTextColor: "#FFFFFF",
+  byTextColor: "#FFFFFF",
+  inputBg: "#2C2C4A",
+  inputBorder: "#37b9c5",
+  inputText: "#fff",
+  placeholder: "#aaa",
+  buttonBg: "#37b9c5",
+  buttonText: "#fff",
+};
+
+// ✅ Validation Schema
 const LoginSchema = Yup.object().shape({
   tenantCode: Yup.string()
     .required("Tenant Code is required")
@@ -35,32 +66,39 @@ const LoginSchema = Yup.object().shape({
 
 const LoginPage = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const scheme = useColorScheme(); // detects system theme
+  const theme = scheme === "dark" ? darkTheme : lightTheme;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.backgroundColor }]}
+      edges={["top", "left", "right"]}
+    >
+      <StatusBar
+        barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={theme.backgroundColor}
+      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
           {/* Top Section */}
           <View style={styles.topContainer}>
-            <Logo width={100 * scale} height={100 * scale} />
-            <Text style={styles.title}>MedDel</Text>
-            <Text style={styles.subtitle}>
+            <Logo width={120 * scale} height={120 * scale} />
+            <Text style={[styles.title, { color: theme.titleColor }]}>MedDel</Text>
+            <Text style={[styles.subtitle, { color: theme.titleColor }]}>
               Smart Order & Delivery{"\n"}Management for Pharmacies
             </Text>
           </View>
 
-          {/* Middle Form */}
+          {/* Form */}
           <Formik
             initialValues={{ tenantCode: "", userId: "", password: "" }}
             validationSchema={LoginSchema}
             onSubmit={(values) => {
               console.log("✅ Login Values:", values);
-              // API call / navigation here
             }}
           >
             {({
@@ -73,59 +111,77 @@ const LoginPage = () => {
             }) => (
               <View style={styles.form}>
                 {/* Tenant Code */}
-                <Text style={styles.label}>Tenant Code</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="126"
-                  placeholderTextColor="#aaa"
-                  keyboardType="numeric"
-                  maxLength={3}
-                  onChangeText={handleChange("tenantCode")}
-                  onBlur={handleBlur("tenantCode")}
-                  value={values.tenantCode}
-                />
+                <Text style={[styles.label, { color: theme.subTextColor }]}>
+                  Tenant Code
+                </Text>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    { backgroundColor: theme.inputBg, borderColor: theme.inputBorder },
+                  ]}
+                >
+                  <TextInput
+                    style={[styles.textInput, { color: theme.inputText }]}
+                    placeholder="Tenant Code"
+                    placeholderTextColor={theme.placeholder}
+                    keyboardType="number-pad"
+                    onChangeText={handleChange("tenantCode")}
+                    onBlur={handleBlur("tenantCode")}
+                    value={values.tenantCode}
+                  />
+                </View>
                 {errors.tenantCode && touched.tenantCode && (
                   <Text style={styles.error}>{errors.tenantCode}</Text>
                 )}
 
                 {/* User ID */}
-                <Text style={styles.label}>User Id</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="126001"
-                  placeholderTextColor="#aaa"
-                  keyboardType="numeric"
-                  maxLength={6}
-                  onChangeText={handleChange("userId")}
-                  onBlur={handleBlur("userId")}
-                  value={values.userId}
-                />
+                <Text style={[styles.label, { color: theme.subTextColor }]}>
+                  User ID
+                </Text>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    { backgroundColor: theme.inputBg, borderColor: theme.inputBorder },
+                  ]}
+                >
+                  <TextInput
+                    style={[styles.textInput, { color: theme.inputText }]}
+                    placeholder="User ID"
+                    placeholderTextColor={theme.placeholder}
+                    keyboardType="default"
+                    onChangeText={handleChange("userId")}
+                    onBlur={handleBlur("userId")}
+                    value={values.userId}
+                  />
+                </View>
                 {errors.userId && touched.userId && (
                   <Text style={styles.error}>{errors.userId}</Text>
                 )}
 
                 {/* Password */}
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.passwordContainer}>
+                <Text style={[styles.label, { color: theme.subTextColor }]}>
+                  Password
+                </Text>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    { backgroundColor: theme.inputBg, borderColor: theme.inputBorder },
+                  ]}
+                >
                   <TextInput
-                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    style={[styles.textInput, { color: theme.inputText }]}
                     placeholder="**********"
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor={theme.placeholder}
                     secureTextEntry={!passwordVisible}
                     onChangeText={handleChange("password")}
                     onBlur={handleBlur("password")}
                     value={values.password}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setPasswordVisible(!passwordVisible)}
-                  >
+                  <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
                     <Ionicons
-                      name={
-                        passwordVisible ? "eye-off-outline" : "eye-outline"
-                      }
-                      size={20 * scale}
-                      color="#555"
+                      name={passwordVisible ? "eye-off-outline" : "eye-outline"}
+                      size={18 * scale}
+                      color={theme.subTextColor}
                     />
                   </TouchableOpacity>
                 </View>
@@ -135,15 +191,19 @@ const LoginPage = () => {
 
                 {/* Forgot Password */}
                 <TouchableOpacity>
-                  <Text style={styles.forgotPassword}>Forgot Password?</Text>
+                  <Text style={[styles.forgotPassword, { color: theme.titleColor }]}>
+                    Forgot Password?
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Login Button */}
                 <TouchableOpacity
-                  style={styles.loginButton}
+                  style={[styles.loginButton, { backgroundColor: theme.buttonBg }]}
                   onPress={handleSubmit as any}
                 >
-                  <Text style={styles.loginText}>Log In</Text>
+                  <Text style={[styles.loginText, { color: theme.buttonText }]}>
+                    Log In
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -151,8 +211,10 @@ const LoginPage = () => {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Designed And Developed{"\n"}By</Text>
-            <GrowX_W width={120 * scale} height={40 * scale} />
+            <Text style={[styles.footerText, { color: theme.byTextColor }]}>
+              Designed And Developed{"\n"}By
+            </Text>
+            <GrowX_W width={100 * scale} height={90 * scale} />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -162,105 +224,86 @@ const LoginPage = () => {
 
 export default LoginPage;
 
+// 🔹 Shared Styles
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   container: {
     flex: 1,
-    justifyContent: "space-between", // top, form, footer
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "#fff",
+    paddingHorizontal: 20 * scale,
   },
   topContainer: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10 * scale,
   },
   title: {
     fontFamily: "ManropeBold",
-    fontSize: 28,
+    fontSize: 26 * scale,
     fontWeight: "bold",
-    color: "#37b9c5",
-    marginTop: 6,
+    marginTop: 4 * scale,
   },
   subtitle: {
     fontFamily: "ManropeSemiBold",
     textAlign: "center",
-    fontSize: 13,
-    color: "#555",
-    marginTop: 4,
+    fontSize: 12 * scale,
+    marginTop: 3 * scale,
   },
   form: {
     width: "100%",
-    marginTop: 10,
   },
   label: {
+    fontSize: 12 * scale,
     fontFamily: "ManropeSemiBold",
-    fontSize: 14,
-    marginBottom: 6,
-    marginTop: 10,
-    color: "#333",
+    marginBottom: 4 * scale,
   },
-  input: {
-    borderWidth: 1.5,
-    borderColor: "#37b9c5", // teal
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 6,
-    backgroundColor: "#e8faff",
-    fontSize: 14,
-    fontFamily: "ManropeSemiBold",
-  },
-  passwordContainer: {
+  inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#37b9c5",
-    borderRadius: 20,
-    marginBottom: 6,
-    backgroundColor: "#e8faff",
+    borderWidth: 1.3 * scale,
+    borderRadius: 18 * scale,
+    paddingHorizontal: 12 * scale,
+    marginBottom: 5 * scale,
   },
-  eyeIcon: {
-    paddingHorizontal: 12,
+  textInput: {
+    flex: 1,
+    paddingVertical: 8 * scale,
+    fontSize: 13 * scale,
+    fontFamily: "ManropeSemiBold",
   },
   error: {
-    fontSize: 12,
     color: "red",
-    marginBottom: 4,
+    fontSize: 10 * scale,
+    marginBottom: 8 * scale,
   },
   forgotPassword: {
     fontFamily: "ManropeRegular",
     textAlign: "right",
-    color: "#37b9c5",
-    fontSize: 12,
-    marginBottom: 15,
+    fontSize: 11 * scale,
+    marginBottom: 10 * scale,
   },
   loginButton: {
     width: "100%",
-    backgroundColor: "#37b9c5",
-    paddingVertical: 14,
-    borderRadius: 30,
+    paddingVertical: 10 * scale,
+    borderRadius: 25 * scale,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8 * scale,
   },
   loginText: {
-    color: "#fff",
-    fontSize: 16,
+    fontSize: 15 * scale,
     fontWeight: "bold",
     fontFamily: "ManropeSemiBold",
   },
   footer: {
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 15 * scale,
   },
   footerText: {
     fontFamily: "ManropeSemiBold",
-    fontSize: 12,
-    color: "#000",
+    fontSize: 12 * scale,
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: 4 * scale,
   },
 });
