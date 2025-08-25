@@ -1,9 +1,12 @@
+import Back_icon from "@/assets/svg/Back_icon";
+import Back_icon_White from "@/assets/svg/Back_icon_white";
+import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import Logo from "@/assets/svg/Logo";
 import GrowX_W from "@/assets/svg/WhiteScreen_logo/GrowX_white";
-import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import { Ionicons } from "@expo/vector-icons";
 import { Formik } from "formik";
 import React, { useState } from "react";
+
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -39,8 +42,8 @@ const lightTheme = {
 
 const darkTheme = {
   backgroundColor: "#1F1F39",
-  titleColor: "#37b9c5", // branding teal
-  subTextColor: "#ffff",
+  titleColor: "#37b9c5",
+  subTextColor: "#fff",
   devTextColor: "#FFFFFF",
   byTextColor: "#FFFFFF",
   inputBg: "#2C2C4A",
@@ -66,7 +69,7 @@ const LoginSchema = Yup.object().shape({
 
 const LoginPage = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const scheme = useColorScheme(); // detects system theme
+  const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
 
   return (
@@ -86,6 +89,15 @@ const LoginPage = () => {
         <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
           {/* Top Section */}
           <View style={styles.topContainer}>
+            {/* Back Button (Optional) */}
+            <TouchableOpacity style={styles.backButton}>
+              {scheme === "dark" ? (
+                <Back_icon_White width={25 * scale} height={25 * scale} />
+              ) : (
+                <Back_icon width={25 * scale} height={25 * scale} />
+              )}
+            </TouchableOpacity>
+
             <Logo width={120 * scale} height={120 * scale} />
             <Text style={[styles.title, { color: theme.titleColor }]}>MedDel</Text>
             <Text style={[styles.subtitle, { color: theme.titleColor }]}>
@@ -99,6 +111,7 @@ const LoginPage = () => {
             validationSchema={LoginSchema}
             onSubmit={(values) => {
               console.log("✅ Login Values:", values);
+              // 🔹 Handle API login call here
             }}
           >
             {({
@@ -148,7 +161,7 @@ const LoginPage = () => {
                     style={[styles.textInput, { color: theme.inputText }]}
                     placeholder="User ID"
                     placeholderTextColor={theme.placeholder}
-                    keyboardType="default"
+                    keyboardType="number-pad"
                     onChangeText={handleChange("userId")}
                     onBlur={handleBlur("userId")}
                     value={values.userId}
@@ -214,7 +227,13 @@ const LoginPage = () => {
             <Text style={[styles.footerText, { color: theme.byTextColor }]}>
               Designed And Developed{"\n"}By
             </Text>
-            <GrowX_W width={100 * scale} height={90 * scale} />
+            <View style={styles.growxContainer}>
+              {scheme === "dark" ? (
+                <GrowX_D width={120 * scale} height={90 * scale} />
+              ) : (
+                <GrowX_W width={120 * scale} height={90 * scale} />
+              )}
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -224,7 +243,7 @@ const LoginPage = () => {
 
 export default LoginPage;
 
-// 🔹 Shared Styles
+// 🔹 Styles
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -238,6 +257,12 @@ const styles = StyleSheet.create({
   topContainer: {
     alignItems: "center",
     marginTop: 10 * scale,
+    width: "100%",
+  },
+  backButton: {
+    position: "absolute",
+    left: 0,
+    top:   2 * scale,
   },
   title: {
     fontFamily: "ManropeBold",
@@ -305,5 +330,8 @@ const styles = StyleSheet.create({
     fontSize: 12 * scale,
     textAlign: "center",
     marginBottom: 4 * scale,
+  },
+  growxContainer: {
+    alignItems: "center",
   },
 });

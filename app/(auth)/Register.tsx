@@ -57,7 +57,7 @@ const Register = () => {
 
         <TouchableOpacity
           style={[styles.signupButton, { backgroundColor: theme.signupButtonColor }]}
-          onPress={() => router.push('/(auth)/Register')}
+          onPress={() => router.push('/(auth)/SignUp')}
         >
           <Text style={[styles.signupButtonText, {color : theme.signupbutonText}]}>Sign Up</Text>
         </TouchableOpacity>
