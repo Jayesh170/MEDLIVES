@@ -1,7 +1,6 @@
 import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import Logo from "@/assets/svg/Logo";
 import GrowX_W from "@/assets/svg/WhiteScreen_logo/GrowX_white";
-import { Ionicons } from "@expo/vector-icons";
 import { Formik } from "formik";
 import React, { useState } from "react";
 import {
@@ -11,14 +10,16 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
   useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
-import Stepper from "../UI/Stepper"; // ✅ use your Stepper component
+import Stepper from "../UI/Stepper";
+import Step1 from "../components/steps/Step1";
+import Step2 from "../components/steps/Step2";
+import Step3 from "../components/steps/Step3";
+import StepNavigation from "../components/steps/StepNavigation";
 
 const { width } = Dimensions.get("window");
 const scale = width / 320;
@@ -62,15 +63,27 @@ const SignUpSchema = Yup.object().shape({
     .required("Password is required")
     .min(6, "Password must be at least 6 characters"),
   confirmPassword: Yup.string()
-    .oneOf([Yup.ref("password"), null], "Passwords must match")
+    .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Confirm Password is required"),
 });
 
 const SignUpPage = () => {
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1); // ✅ Correct state
+  const [currentStep, setCurrentStep] = useState(1);
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
+
+  const renderCurrentStep = (formik: any) => {
+    switch (currentStep) {
+      case 1:
+        return <Step1 formik={formik} theme={theme} />;
+      case 2:
+        return <Step2 formik={formik} theme={theme} />;
+      case 3:
+        return <Step3 formik={formik} theme={theme} />;
+      default:
+        return <Step1 formik={formik} theme={theme} />;
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.backgroundColor }]}>
@@ -115,166 +128,18 @@ const SignUpPage = () => {
               alert("Sign Up Successful!");
             }}
           >
-            {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+            {(formik) => (
               <View style={styles.form}>
-                
-                {/* Step 1 */}
-                {currentStep === 1 && (
-                  <>
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>Business Name</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="Enter Pharmacy Name"
-                        placeholderTextColor={theme.placeholder}
-                        onChangeText={handleChange("businessName")}
-                        onBlur={handleBlur("businessName")}
-                        value={values.businessName}
-                      />
-                    </View>
-                    {errors.businessName && touched.businessName && <Text style={styles.error}>{errors.businessName}</Text>}
-
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>Owner Name</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="Enter Owner Name"
-                        placeholderTextColor={theme.placeholder}
-                        onChangeText={handleChange("ownerName")}
-                        onBlur={handleBlur("ownerName")}
-                        value={values.ownerName}
-                      />
-                    </View>
-                    {errors.ownerName && touched.ownerName && <Text style={styles.error}>{errors.ownerName}</Text>}
-                  </>
-                )}
-
-                {/* Step 2 */}
-                {currentStep === 2 && (
-                  <>
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>Mobile Number</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="10-digit Mobile"
-                        placeholderTextColor={theme.placeholder}
-                        keyboardType="number-pad"
-                        onChangeText={handleChange("mobile")}
-                        onBlur={handleBlur("mobile")}
-                        value={values.mobile}
-                      />
-                    </View>
-                    {errors.mobile && touched.mobile && <Text style={styles.error}>{errors.mobile}</Text>}
-
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>OTP</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="Enter OTP"
-                        placeholderTextColor={theme.placeholder}
-                        keyboardType="number-pad"
-                        onChangeText={handleChange("otp")}
-                        onBlur={handleBlur("otp")}
-                        value={values.otp}
-                      />
-                    </View>
-                    {errors.otp && touched.otp && <Text style={styles.error}>{errors.otp}</Text>}
-
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>Email</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="Enter Email"
-                        placeholderTextColor={theme.placeholder}
-                        keyboardType="email-address"
-                        onChangeText={handleChange("email")}
-                        onBlur={handleBlur("email")}
-                        value={values.email}
-                      />
-                    </View>
-                    {errors.email && touched.email && <Text style={styles.error}>{errors.email}</Text>}
-
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>License No</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="Drug License Number"
-                        placeholderTextColor={theme.placeholder}
-                        onChangeText={handleChange("licenseNo")}
-                        onBlur={handleBlur("licenseNo")}
-                        value={values.licenseNo}
-                      />
-                    </View>
-                    {errors.licenseNo && touched.licenseNo && <Text style={styles.error}>{errors.licenseNo}</Text>}
-                  </>
-                )}
-
-                {/* Step 3 */}
-                {currentStep === 3 && (
-                  <>
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>Password</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="********"
-                        placeholderTextColor={theme.placeholder}
-                        secureTextEntry={!passwordVisible}
-                        onChangeText={handleChange("password")}
-                        onBlur={handleBlur("password")}
-                        value={values.password}
-                      />
-                      <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
-                        <Ionicons
-                          name={passwordVisible ? "eye-off-outline" : "eye-outline"}
-                          size={18 * scale}
-                          color={theme.subTextColor}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    {errors.password && touched.password && <Text style={styles.error}>{errors.password}</Text>}
-
-                    <Text style={[styles.label, { color: theme.subTextColor }]}>Confirm Password</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <TextInput
-                        style={[styles.textInput, { color: theme.inputText }]}
-                        placeholder="********"
-                        placeholderTextColor={theme.placeholder}
-                        secureTextEntry
-                        onChangeText={handleChange("confirmPassword")}
-                        onBlur={handleBlur("confirmPassword")}
-                        value={values.confirmPassword}
-                      />
-                    </View>
-                    {errors.confirmPassword && touched.confirmPassword && <Text style={styles.error}>{errors.confirmPassword}</Text>}
-                  </>
-                )}
+                {/* Render Current Step */}
+                {renderCurrentStep(formik)}
 
                 {/* Navigation Buttons */}
-                <View style={styles.navigation}>
-                  {currentStep > 1 && (
-                    <TouchableOpacity
-                      style={[styles.navBtn, { backgroundColor: "#ccc" }]}
-                      onPress={() => setCurrentStep((prev) => prev - 1)}
-                    >
-                      <Text style={styles.navText}>Back</Text>
-                    </TouchableOpacity>
-                  )}
-                  {currentStep < 3 ? (
-                    <TouchableOpacity
-                      style={[styles.navBtn, { backgroundColor: theme.buttonBg }]}
-                      onPress={() => setCurrentStep((prev) => prev + 1)}
-                    >
-                      <Text style={[styles.navText, { color: theme.buttonText }]}>Next</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.navBtn, { backgroundColor: theme.buttonBg }]}
-                      onPress={handleSubmit}
-                    >
-                      <Text style={[styles.navText, { color: theme.buttonText }]}>Submit</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                <StepNavigation
+                  currentStep={currentStep}
+                  setCurrentStep={setCurrentStep}
+                  onSubmit={formik.handleSubmit}
+                  theme={theme}
+                />
               </View>
             )}
           </Formik>
@@ -322,46 +187,9 @@ const styles = StyleSheet.create({
     fontSize: 11 * scale,
     marginTop: 2 * scale,
   },
-  form: { width: "100%" },
-  label: {
-    fontSize: 12 * scale,
-    fontFamily: "ManropeSemiBold",
-    marginBottom: 4 * scale,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.3 * scale,
-    borderRadius: 18 * scale,
-    paddingHorizontal: 12 * scale,
-    marginBottom: 6 * scale,
-  },
-  textInput: {
+  form: { 
+    width: "100%",
     flex: 1,
-    paddingVertical: 8 * scale,
-    fontSize: 13 * scale,
-    fontFamily: "ManropeSemiBold",
-  },
-  error: {
-    color: "red",
-    fontSize: 10 * scale,
-    marginBottom: 6 * scale,
-  },
-  navigation: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10 * scale,
-  },
-  navBtn: {
-    flex: 1,
-    paddingVertical: 10 * scale,
-    borderRadius: 25 * scale,
-    alignItems: "center",
-    marginHorizontal: 5 * scale,
-  },
-  navText: {
-    fontSize: 14 * scale,
-    fontFamily: "ManropeSemiBold",
   },
   footer: {
     alignItems: "center",

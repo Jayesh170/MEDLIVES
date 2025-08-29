@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const { width } = Dimensions.get("window");
 const scale = width / 320; // Base scaling factor
 
-const Stepper = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+interface StepperProps {
+  currentStep: number;
+  setCurrentStep: (step: number) => void;
+}
 
+const Stepper: React.FC<StepperProps> = ({ currentStep, setCurrentStep }) => {
   const steps = [
     { id: 1, label: "Business Info" },
     { id: 2, label: "Contact & License" },
@@ -28,25 +32,29 @@ const Stepper = () => {
                   style={[
                     styles.circle,
                     isActive && styles.activeCircle,
-                    isCompleted && styles.activeCircle,
+                    isCompleted && styles.completedCircle,
                   ]}
                   onPress={() => setCurrentStep(step.id)}
                 >
-                  <Text
-                    style={[
-                      styles.stepText,
-                      (isActive || isCompleted) && styles.activeStepText,
-                    ]}
-                  >
-                    {step.id < 10 ? `0${step.id}` : step.id}
-                  </Text>
+                  {isCompleted ? (
+                    <Ionicons name="checkmark" size={20 * scale} color="#fff" />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.stepText,
+                        isActive && styles.activeStepText,
+                      ]}
+                    >
+                      {step.id < 10 ? `0${step.id}` : step.id}
+                    </Text>
+                  )}
                 </TouchableOpacity>
 
                 <Text
                   numberOfLines={2}
                   style={[
                     styles.label,
-                    isActive ? styles.activeLabel : styles.inactiveLabel,
+                    (isActive || isCompleted) ? styles.activeLabel : styles.inactiveLabel,
                   ]}
                 >
                   {step.label}
@@ -55,12 +63,14 @@ const Stepper = () => {
 
               {/* Connector Line */}
               {index !== steps.length - 1 && (
-                <View
-                  style={[
-                    styles.line,
-                    isCompleted && styles.activeLine,
-                  ]}
-                />
+                <View style={styles.lineContainer}>
+                  <View
+                    style={[
+                      styles.line,
+                      isCompleted && styles.activeLine,
+                    ]}
+                  />
+                </View>
               )}
             </React.Fragment>
           );
@@ -100,6 +110,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#3bbbc3",
     borderColor: "#3bbbc3",
   },
+  completedCircle: {
+    backgroundColor: "#3bbbc3",
+    borderColor: "#3bbbc3",
+  },
   stepText: {
     fontSize: 13 * scale,
     fontWeight: "600",
@@ -120,13 +134,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   inactiveLabel: {
-    color: "#777",
+    color: "#3bbbc3",
+  },
+  lineContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40 * scale,
+    marginHorizontal: 5 * scale,
   },
   line: {
-    flex: 1,
-    height: 2 * scale,
-    backgroundColor: "#820000ff",
-    marginHorizontal: 5 * scale,
+    width: "100%",
+    height: 8 * scale,
+    backgroundColor: "#999999",
+    borderRadius: 4 * scale,
   },
   activeLine: {
     backgroundColor: "#3bbbc3",
