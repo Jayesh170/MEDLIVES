@@ -1,12 +1,15 @@
 import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import Logo from "@/assets/svg/Logo";
 import GrowX_W from "@/assets/svg/WhiteScreen_logo/GrowX_white";
+import { router } from "expo-router";
 import { Formik } from "formik";
 import React, { useState } from "react";
 import {
+  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -15,11 +18,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
-import Stepper from "../UI/Stepper";
+import { registrationApiService } from "../../src/services/registrationApi";
 import Step1 from "../components/steps/Step1";
 import Step2 from "../components/steps/Step2";
 import Step3 from "../components/steps/Step3";
 import StepNavigation from "../components/steps/StepNavigation";
+import SuccessModal from "../components/SuccessModal";
+import Stepper from "../UI/Stepper";
 
 const { width } = Dimensions.get("window");
 const scale = width / 320;
@@ -58,7 +63,7 @@ const SignUpSchema = Yup.object().shape({
     .matches(/^[0-9]{10}$/, "Must be a valid 10-digit mobile number"),
   otp: Yup.string().required("OTP is required").matches(/^[0-9]{6}$/, "OTP must be 6 digits"),
   email: Yup.string().email("Invalid email").required("Email is required"),
-  licenseNo: Yup.string().required("License No. is required"),
+  licenseNo: Yup.string().required("License Number is required"),
   password: Yup.string()
     .required("Password is required")
     .min(6, "Password must be at least 6 characters"),
@@ -69,6 +74,9 @@ const SignUpSchema = Yup.object().shape({
 
 const SignUpPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registrationData, setRegistrationData] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
 
@@ -96,7 +104,11 @@ const SignUpPage = () => {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+        <ScrollView 
+          style={[styles.container, { backgroundColor: theme.backgroundColor }]}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           
           {/* Header */}
           <View style={styles.topContainer}>
@@ -123,9 +135,34 @@ const SignUpPage = () => {
               confirmPassword: "",
             }}
             validationSchema={SignUpSchema}
-            onSubmit={(values) => {
+            onSubmit={async (values) => {
               console.log("✅ SignUp Values:", values);
-              alert("Sign Up Successful!");
+              setIsSubmitting(true);
+              
+              try {
+                const response = await registrationApiService.registerTenant({
+                  businessName: values.businessName,
+                  ownerName: values.ownerName,
+                  mobile: values.mobile,
+                  email: values.email,
+                  licenseNo: values.licenseNo,
+                  password: values.password,
+                });
+                
+                if (response.success && response.data) {
+                  console.log("✅ Registration successful:", response.data);
+                  setRegistrationData(response.data);
+                  setShowSuccessModal(true);
+                } else {
+                  console.log("❌ Registration failed:", response.error);
+                  Alert.alert("Registration Failed", response.error || "Something went wrong");
+                }
+              } catch (error) {
+                console.error("❌ Registration error:", error);
+                Alert.alert("Error", "Network error. Please try again.");
+              } finally {
+                setIsSubmitting(false);
+              }
             }}
           >
             {(formik) => (
@@ -139,6 +176,7 @@ const SignUpPage = () => {
                   setCurrentStep={setCurrentStep}
                   onSubmit={formik.handleSubmit}
                   theme={theme}
+                  formik={formik}
                 />
               </View>
             )}
@@ -152,8 +190,29 @@ const SignUpPage = () => {
               <GrowX_W width={120 * scale} height={90 * scale} />
             )}
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Success Modal */}
+      {registrationData && (
+        <SuccessModal
+          visible={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          onProceedToLogin={() => {
+            setShowSuccessModal(false);
+            // Navigate to login page with pre-filled credentials
+            router.push({
+              pathname: "/(auth)/LoginPage",
+              params: {
+                tenantCode: registrationData.tenantCode.toString(),
+                userId: registrationData.ownerUserId.toString(),
+                password: registrationData.password,
+              },
+            });
+          }}
+          data={registrationData}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -165,9 +224,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20 * scale,
+    paddingBottom: 20 * scale,
   },
   topContainer: {
     alignItems: "center",

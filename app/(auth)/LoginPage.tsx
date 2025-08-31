@@ -4,8 +4,9 @@ import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import Logo from "@/assets/svg/Logo";
 import GrowX_W from "@/assets/svg/WhiteScreen_logo/GrowX_white";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import { Formik } from "formik";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   Dimensions,
@@ -69,8 +70,25 @@ const LoginSchema = Yup.object().shape({
 
 const LoginPage = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [initialValues, setInitialValues] = useState({
+    tenantCode: "",
+    userId: "",
+    password: "",
+  });
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
+  const params = useLocalSearchParams();
+
+  // Set initial values from registration params
+  useEffect(() => {
+    if (params.tenantCode && params.userId && params.password) {
+      setInitialValues({
+        tenantCode: params.tenantCode as string,
+        userId: params.userId as string,
+        password: params.password as string,
+      });
+    }
+  }, [params]);
 
   return (
     <SafeAreaView
@@ -107,8 +125,9 @@ const LoginPage = () => {
 
           {/* Form */}
           <Formik
-            initialValues={{ tenantCode: "", userId: "", password: "" }}
+            initialValues={initialValues}
             validationSchema={LoginSchema}
+            enableReinitialize={true}
             onSubmit={(values) => {
               console.log("✅ Login Values:", values);
               // 🔹 Handle API login call here

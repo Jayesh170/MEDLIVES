@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 
 const { width } = Dimensions.get("window");
 const scale = width / 320; // Base scaling factor
@@ -28,13 +28,12 @@ const Stepper: React.FC<StepperProps> = ({ currentStep, setCurrentStep }) => {
             <React.Fragment key={step.id}>
               {/* Step Circle & Label */}
               <View style={styles.stepWrapper}>
-                <TouchableOpacity
+                <View
                   style={[
                     styles.circle,
                     isActive && styles.activeCircle,
                     isCompleted && styles.completedCircle,
                   ]}
-                  onPress={() => setCurrentStep(step.id)}
                 >
                   {isCompleted ? (
                     <Ionicons name="checkmark" size={20 * scale} color="#fff" />
@@ -48,7 +47,7 @@ const Stepper: React.FC<StepperProps> = ({ currentStep, setCurrentStep }) => {
                       {step.id < 10 ? `0${step.id}` : step.id}
                     </Text>
                   )}
-                </TouchableOpacity>
+                </View>
 
                 <Text
                   numberOfLines={2}
