@@ -6,23 +6,27 @@ import User from "../models/User.js";
 
 const OTP_EXPIRY_MIN = Number(process.env.OTP_EXPIRY_MIN || 5);
 
-// helper: get next tenant code (atomic)
+// helper: get next tenant code (atomic) - generates 3-digit codes starting from 100
 async function getNextTenantCode() {
   const doc = await Counter.findOneAndUpdate(
     { _id: "tenantCode" },
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
-  return Number(doc.seq); // ensure it's numeric
+  // Start tenant codes from 100 to ensure 3-digit codes
+  const tenantCode = doc.seq + 99; // seq=1 becomes 100, seq=2 becomes 101, etc.
+  return Number(tenantCode);
 }
 
-// helper: generate next user id inside tenant
+// helper: generate next user id inside tenant - creates 6-digit user IDs
 async function generateUserIdForTenant(tenantCode) {
   const doc = await Counter.findOneAndUpdate(
     { _id: `user-${tenantCode}` },
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
+  // Generate 6-digit user ID: 3-digit tenant code + 3-digit user sequence
+  // Example: tenant 126 + user 001 = 126001
   return Number(`${tenantCode}${String(doc.seq).padStart(3, "0")}`);
 }
 

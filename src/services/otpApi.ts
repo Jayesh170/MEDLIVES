@@ -1,4 +1,6 @@
 // OTP API service for Step2 component
+import { Platform } from "react-native";
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
@@ -10,15 +12,17 @@ class OtpApiService {
   private baseURL: string;
 
   constructor(baseURL?: string) {
-    // Use environment-specific URLs
     if (baseURL) {
       this.baseURL = baseURL;
     } else if (__DEV__) {
-      // Development: use your computer's IP address
-      this.baseURL = 'http://10.91.60.158:5000/api';
+      // Use emulator/device-friendly IP
+      this.baseURL = Platform.select({
+        android: "http://10.0.2.2:5000/api", // Android Emulator
+        ios: "http://localhost:5000/api",   // iOS Simulator
+        default: "http://192.168.1.5:5000/api" // Replace with your LAN IP for real device
+      })!;
     } else {
-      // Production: use your production server URL
-      this.baseURL = 'https://your-production-server.com/api';
+      this.baseURL = "https://your-production-server.com/api";
     }
   }
 
@@ -39,7 +43,7 @@ class OtpApiService {
       };
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       console.log('Request config:', {
         method: config.method || 'GET',
@@ -79,6 +83,23 @@ class OtpApiService {
         stack: error instanceof Error ? error.stack : undefined,
         url: `${this.baseURL}${endpoint}`
       });
+      
+      // Handle specific error types for better user experience
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            error: 'Request timeout - please try again',
+          };
+        }
+        if (error.message.includes('fetch')) {
+          return {
+            success: false,
+            error: 'Network connection failed - please check your internet connection',
+          };
+        }
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',

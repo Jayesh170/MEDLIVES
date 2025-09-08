@@ -1,4 +1,6 @@
 // Registration API service
+import { Platform } from "react-native";
+
 export interface ApiResponse<T = any> {
     success: boolean;
     message?: string;
@@ -19,15 +21,17 @@ export interface ApiResponse<T = any> {
     private baseURL: string;
   
     constructor(baseURL?: string) {
-      // Use environment-specific URLs
       if (baseURL) {
         this.baseURL = baseURL;
       } else if (__DEV__) {
-        // Development: use your computer's IP address
-        this.baseURL = 'http://10.91.60.158:5000/api';
+        // Use emulator/device-friendly IP
+        this.baseURL = Platform.select({
+          android: "http://10.0.2.2:5000/api", // Android Emulator
+          ios: "http://localhost:5000/api",   // iOS Simulator
+          default: "http://192.168.1.5:5000/api" // Replace with your LAN IP for real device
+        })!;
       } else {
-        // Production: use your production server URL
-        this.baseURL = 'https://your-production-server.com/api';
+        this.baseURL = "https://your-production-server.com/api";
       }
     }
   

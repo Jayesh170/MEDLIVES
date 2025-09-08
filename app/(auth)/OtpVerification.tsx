@@ -21,7 +21,7 @@ const OtpVerification = () => {
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
   React.useEffect(() => {
-    let interval: number | undefined;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (timer > 0) {
       interval = setInterval(() => setTimer(t => t - 1), 1000);
       setIsResendActive(false);
@@ -30,7 +30,6 @@ const OtpVerification = () => {
     }
     return () => {
       if (interval) clearInterval(interval);
-      return undefined;
     };
   }, [timer]);
 

@@ -81,13 +81,13 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20 * scale,
   },
   modalContainer: {
-    backgroundColor: "#E0CFCF",
+    backgroundColor: "rgba(45, 55, 72, 0.95)",
     borderRadius: 20 * scale,
     padding: 30 * scale,
     alignItems: "center",
@@ -95,11 +95,20 @@ const styles = StyleSheet.create({
     borderColor: "#4ECDC4",
     minWidth: 300 * scale,
     maxWidth: 350 * scale,
+    backdropFilter: "blur(10px)",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
   },
   welcomeText: {
     fontSize: 18 * scale,
     fontWeight: "bold",
-    color: "#333333",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 20 * scale,
     fontFamily: "ManropeBold",
@@ -125,7 +134,7 @@ const styles = StyleSheet.create({
   },
   credentialLabel: {
     fontSize: 14 * scale,
-    color: "#333333",
+    color: "#E2E8F0",
     fontFamily: "ManropeSemiBold",
   },
   credentialValue: {

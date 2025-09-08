@@ -88,7 +88,7 @@ const LoginPage = () => {
         password: params.password as string,
       });
     }
-  }, [params]);
+  }, [params.tenantCode, params.userId, params.password]);
 
   return (
     <SafeAreaView
