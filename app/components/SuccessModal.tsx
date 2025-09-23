@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Dimensions,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -66,6 +66,17 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
               <Text style={styles.credentialLabel}>Password : </Text>
               <Text style={styles.credentialValue}>{data.password}</Text>
             </View>
+          </View>
+
+          {/* Branding */}
+          <View style={styles.brandingContainer}>
+            <Text style={styles.brandingText}>Designed And Developed</Text>
+            <Text style={styles.brandingText}>By</Text>
+            <View style={styles.logoContainer}>
+              <Text style={styles.growText}>Grow</Text>
+              <Text style={styles.xText}>X</Text>
+            </View>
+            <Text style={styles.taglineText}>TECH & MARKETING</Text>
           </View>
 
           {/* Proceed To Login Button */}
@@ -156,6 +167,40 @@ const styles = StyleSheet.create({
     fontSize: 16 * scale,
     fontWeight: "bold",
     fontFamily: "ManropeBold",
+  },
+  brandingContainer: {
+    alignItems: "center",
+    marginBottom: 20 * scale,
+  },
+  brandingText: {
+    fontSize: 12 * scale,
+    color: "#E2E8F0",
+    fontFamily: "ManropeSemiBold",
+    textAlign: "center",
+  },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 4 * scale,
+  },
+  growText: {
+    fontSize: 16 * scale,
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontFamily: "ManropeBold",
+  },
+  xText: {
+    fontSize: 16 * scale,
+    color: "#4ECDC4",
+    fontWeight: "bold",
+    fontFamily: "ManropeBold",
+  },
+  taglineText: {
+    fontSize: 8 * scale,
+    color: "#4ECDC4",
+    fontFamily: "ManropeSemiBold",
+    letterSpacing: 1,
+    textAlign: "center",
   },
 });
 

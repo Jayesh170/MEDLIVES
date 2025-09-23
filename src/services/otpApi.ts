@@ -15,12 +15,8 @@ class OtpApiService {
     if (baseURL) {
       this.baseURL = baseURL;
     } else if (__DEV__) {
-      // Use emulator/device-friendly IP
-      this.baseURL = Platform.select({
-        android: "http://10.0.2.2:5000/api", // Android Emulator
-        ios: "http://localhost:5000/api",   // iOS Simulator
-        default: "http://192.168.1.5:5000/api" // Replace with your LAN IP for real device
-      })!;
+      // Use your computer's IP for mobile device testing with Expo Go
+      this.baseURL = "http://10.21.92.158:5000/api";
     } else {
       this.baseURL = "https://your-production-server.com/api";
     }

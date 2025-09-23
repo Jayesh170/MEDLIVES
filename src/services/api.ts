@@ -45,7 +45,14 @@ class ApiService {
   private baseURL: string;
 
   constructor(baseURL?: string) {
-    this.baseURL = baseURL || 'http://localhost:5000/api';
+    if (baseURL) {
+      this.baseURL = baseURL;
+    } else if (__DEV__) {
+      // Use your computer's IP address for mobile device testing
+      this.baseURL = 'http://10.21.92.158:5000/api';
+    } else {
+      this.baseURL = 'https://your-production-server.com/api';
+    }
   }
 
   // Get auth token from storage

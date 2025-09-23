@@ -4,7 +4,7 @@ import GrowX_D from "@/assets/svg/DarkMode/GrowX_DarkMode";
 import Logo from "@/assets/svg/Logo";
 import GrowX_W from "@/assets/svg/WhiteScreen_logo/GrowX_white";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
 
@@ -12,6 +12,7 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -75,9 +76,11 @@ const LoginPage = () => {
     userId: "",
     password: "",
   });
+  const [loginError, setLoginError] = useState("");
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const params = useLocalSearchParams();
+  const router = useRouter();
 
   // Set initial values from registration params
   useEffect(() => {
@@ -89,6 +92,27 @@ const LoginPage = () => {
       });
     }
   }, [params.tenantCode, params.userId, params.password]);
+
+  // Login validation function
+  const handleLogin = (values: { tenantCode: string; userId: string; password: string }) => {
+    setLoginError("");
+    
+    // Check if credentials match the ones from registration
+    if (
+      params.tenantCode &&
+      params.userId &&
+      params.password &&
+      values.tenantCode === params.tenantCode &&
+      values.userId === params.userId &&
+      values.password === params.password
+    ) {
+      // Successful login - navigate to HomeScreen
+      router.replace("/HomeScreen");
+    } else {
+      // Invalid credentials
+      setLoginError("Invalid credentials. Please check your Tenant Code, User ID, and Password.");
+    }
+  };
 
   return (
     <SafeAreaView
@@ -102,9 +126,15 @@ const LoginPage = () => {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
           {/* Top Section */}
           <View style={styles.topContainer}>
             {/* Back Button (Optional) */}
@@ -128,10 +158,7 @@ const LoginPage = () => {
             initialValues={initialValues}
             validationSchema={LoginSchema}
             enableReinitialize={true}
-            onSubmit={(values) => {
-              console.log("✅ Login Values:", values);
-              // 🔹 Handle API login call here
-            }}
+            onSubmit={handleLogin}
           >
             {({
               handleChange,
@@ -221,6 +248,11 @@ const LoginPage = () => {
                   <Text style={styles.error}>{errors.password}</Text>
                 )}
 
+                {/* Login Error */}
+                {loginError ? (
+                  <Text style={styles.error}>{loginError}</Text>
+                ) : null}
+
                 {/* Forgot Password */}
                 <TouchableOpacity>
                   <Text style={[styles.forgotPassword, { color: theme.titleColor }]}>
@@ -255,6 +287,7 @@ const LoginPage = () => {
             </View>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -266,6 +299,9 @@ export default LoginPage;
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
   },
   container: {
     flex: 1,
@@ -343,6 +379,7 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: "center",
     marginBottom: 15 * scale,
+    marginTop: 40 * scale,
   },
   footerText: {
     fontFamily: "ManropeSemiBold",
