@@ -37,7 +37,7 @@ const RegisterSuccess = () => {
               router.push('/(auth)/First');
             }}
           >
-            <View>
+            <View>3
               <Text style={styles.buttonText}>CONTINUE</Text>
             </View>
           </TouchableOpacity>

@@ -1,6 +1,6 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Text, TextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
@@ -19,6 +19,20 @@ export default function RootLayout() {
       </View>
     );
   }
+
+  // Set global default font to ManropeRegular once fonts are loaded (cast to any to satisfy TS)
+  (Text as any).defaultProps = (Text as any).defaultProps || {};
+  (Text as any).defaultProps.style = [
+    (Text as any).defaultProps.style,
+    { fontFamily: "ManropeRegular" },
+  ];
+
+  // Apply ManropeRegular to TextInput globally as well
+  (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+  (TextInput as any).defaultProps.style = [
+    (TextInput as any).defaultProps.style,
+    { fontFamily: "ManropeRegular" },
+  ];
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

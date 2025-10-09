@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AddOrder from './AddOrder';
+import AddOrder from './AddOrderFixed';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -175,13 +175,13 @@ const HomeScreen = () => {
           </View>
         {item.medications.slice(0, 2).map((med: any, idx: number) => (
           <View style={styles.orderListRow} key={idx}>
-            <Text style={{ flex: 1 }}>{med.name}</Text>
-            <Text style={{ flex: 1, textAlign: 'center' }}>{med.qty}</Text>
-            <Text style={{ flex: 1, textAlign: 'right' }}>{med.qty} x {med.price} = {med.qty * med.price}</Text>
+            <Text style={[styles.medCell, { flex: 1 }]}>{med.name}</Text>
+            <Text style={[styles.medCell, { flex: 1, textAlign: 'center' }]}>{med.qty}</Text>
+            <Text style={[styles.medCell, { flex: 1, textAlign: 'right' }]}>{med.qty} x {med.price} = {med.qty * med.price}</Text>
           </View>
         ))}
         {item.medications.length > 2 && (
-          <Text style={{ color: '#2EC4D6', fontWeight: 'bold', marginTop: 2, marginBottom: 2 }}>More...</Text>
+          <Text style={styles.moreLink}>More...</Text>
         )}
         <Text style={styles.cardText}><Text style={styles.bold}>TOTAL AMOUNT :</Text> {formatINR(item.totalAmount)}</Text>
         <View style={styles.statusRow}>
@@ -225,9 +225,6 @@ const HomeScreen = () => {
           </View>
           <Text style={styles.headerTitle}>OMKAR MEDICAL</Text>
         </View>
-        <TouchableOpacity style={styles.toggleBtn}>
-          <Ionicons name="toggle" size={32 * scale} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Orders List with sticky filter header and metrics only when there are orders */}
@@ -451,9 +448,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     letterSpacing: 1,
   },
-  toggleBtn: {
-    padding: 4 * scale,
-  },
   stickyHeader: {
     backgroundColor: COLORS.surface,
     paddingBottom: 8 * scale,
@@ -589,6 +583,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 2 * scale,
   },
+  medCell: {
+    fontFamily: FONTS.regular,
+    color: '#222',
+    fontSize: 12 * scale,
+  },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'center', // Center the buttons horizontally
@@ -664,35 +663,36 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingHorizontal: 24 * scale,
-    paddingVertical: 8 * scale,
-    height: 60 * scale,
+    paddingHorizontal: 12 * scale,
+    paddingVertical: 10 * scale,
+    height: 64 * scale,
     zIndex: 10,
   },
   bottomIcon: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
+    minWidth: 56 * scale,
+    paddingHorizontal: 4 * scale,
   },
   bottomLabel: {
-    marginTop: 2 * scale,
-    fontSize: 10 * scale,
+    marginTop: 3 * scale,
+    fontSize: 11 * scale,
     color: COLORS.text,
     fontFamily: FONTS.semi,
   },
   addBtn: {
-    width: 48 * scale,
-    height: 48 * scale,
-    borderRadius: 24 * scale,
+    width: 56 * scale,
+    height: 56 * scale,
+    borderRadius: 28 * scale,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 8 * scale,
-    marginTop: -24 * scale,
+    marginTop: -28 * scale,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -729,5 +729,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: FONTS.semi,
     fontSize: 13 * scale,
+  },
+  moreLink: {
+    color: COLORS.primary,
+    fontFamily: FONTS.semi,
+    marginTop: 2 * scale,
+    marginBottom: 2 * scale,
   },
 });
