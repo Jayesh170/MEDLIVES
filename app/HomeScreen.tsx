@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 18 * scale,
+    fontSize: 19 * scale,
     fontWeight: 'bold',
     fontFamily: FONTS.bold,
     letterSpacing: 1,
