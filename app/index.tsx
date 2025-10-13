@@ -1,3 +1,3 @@
-import HomeScreen from './HomeScreen';
+import MainNavigator from './MainNavigator';
 
-export default HomeScreen;
+export default MainNavigator;

@@ -122,6 +122,7 @@ const HomeScreen = () => {
     }
   };
 
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadOrders();
@@ -386,36 +387,6 @@ const HomeScreen = () => {
         </View>
       )}
 
-      {/* Bottom Bar */}
-      <View
-        style={[
-          styles.bottomBar,
-          {
-            paddingBottom: (insets.bottom || 10 * scale),
-            height: 54 * scale + (insets.bottom || 10 * scale),
-          },
-        ]}
-      >
-        <TouchableOpacity style={styles.bottomIcon}>
-          <Ionicons name="home" size={20 * scale} color={COLORS.primary} />
-          <Text style={[styles.bottomLabel, { color: COLORS.primary }]}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomIcon}>
-          <Ionicons name="people" size={20 * scale} color={COLORS.text} />
-          <Text style={styles.bottomLabel}>Customers</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddOrder(true)}>
-          <Ionicons name="add" size={28 * scale} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomIcon}>
-          <Ionicons name="checkmark-circle-outline" size={20 * scale} color={COLORS.text} />
-          <Text style={styles.bottomLabel}>Completed</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomIcon}>
-          <FontAwesome name="user" size={20 * scale} color={COLORS.text} />
-          <Text style={styles.bottomLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* AddOrder Modal */}
       <AddOrder
@@ -671,49 +642,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontFamily: FONTS.bold,
     marginTop: 2 * scale,
-  },
-  bottomBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingHorizontal: 12 * scale,
-    paddingVertical: 10 * scale,
-    height: 64 * scale,
-    zIndex: 10,
-  },
-  bottomIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 56 * scale,
-    paddingHorizontal: 4 * scale,
-  },
-  bottomLabel: {
-    marginTop: 3 * scale,
-    fontSize: 11 * scale,
-    color: COLORS.text,
-    fontFamily: FONTS.semi,
-  },
-  addBtn: {
-    width: 56 * scale,
-    height: 56 * scale,
-    borderRadius: 28 * scale,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 8 * scale,
-    marginTop: -28 * scale,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
   },
   emptyState: {
     alignItems: 'center',
