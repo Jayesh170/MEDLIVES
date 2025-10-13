@@ -170,24 +170,17 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
   const handleSubmit = (values: any, helpers: { resetForm: () => void }) => {
     try {
       const orderData = transformOrderData(values);
-      
-      // Show delivery assignment prompt
-      setShowDeliveryAssignment(true);
-      
-      // Simulate order processing
-      setTimeout(() => {
-        onAddOrder(orderData);
-        helpers.resetForm();
-        setCurrentStep(0);
-        setShowDeliveryAssignment(false);
-        onClose();
-        
-        Alert.alert(
-          'Success', 
-          'Order created successfully! It has been added to the orders list.',
-          [{ text: 'OK' }]
-        );
-      }, 2000);
+      // Immediately submit to parent (backend integration happens there)
+      onAddOrder(orderData);
+      helpers.resetForm();
+      setCurrentStep(0);
+      setShowDeliveryAssignment(false);
+      onClose();
+      Alert.alert(
+        'Success',
+        'Order created successfully! It has been added to the orders list.',
+        [{ text: 'OK' }]
+      );
       
     } catch (error) {
       setShowDeliveryAssignment(false);

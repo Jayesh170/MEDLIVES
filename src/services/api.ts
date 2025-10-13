@@ -241,6 +241,29 @@ class ApiService {
       return null;
     }
   }
+
+  // Orders Methods
+  async getOrders(params?: {
+    date?: string; // dd/MM/yy
+    status?: 'all' | 'paid' | 'credit' | 'pending';
+    q?: string;
+  }): Promise<ApiResponse> {
+    const qs = params
+      ? '?' +
+        Object.entries(params)
+          .filter(([, v]) => v !== undefined && v !== null && v !== '')
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+          .join('&')
+      : '';
+    return this.request(`/orders${qs}`);
+  }
+
+  async createOrder(order: any): Promise<ApiResponse> {
+    return this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(order),
+    });
+  }
 }
 
 // Export singleton instance

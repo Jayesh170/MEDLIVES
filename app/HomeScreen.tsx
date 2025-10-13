@@ -5,8 +5,9 @@ import { format, subDays } from 'date-fns';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AddOrder from './AddOrderFixed';
+import { apiService } from '../src/services/api';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -31,30 +32,11 @@ const FONTS = {
   bold: 'ManropeBold',
 };
 
-const ordersData = [
-  {
-    id: '1',
-    date: '19/11/24',
-    orderId: '1',
-    address: 'F-101 SHANTINAGAR',
-    contactNumber: '8888133849',
-    customerName: 'JAYESH DANGI',
-    medications: [
-      { name: 'Dolo', qty: 2, price: 150 },
-      { name: 'Cyclopalm', qty: 1, price: 250 },
-      { name: 'Manforce-Family-Pack', qty: 1, price: 650 },
-    ],
-    totalAmount: 1100,
-    discount: 165,
-    discountPercent: 15,
-    payableAmount: 935,
-    status: 'paid',
-  },
-  // Add more mock orders as needed
-];
+const ordersData: any[] = [];
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('today');
   const [orders, setOrders] = useState(ordersData);
   const [filteredOrders, setFilteredOrders] = useState(ordersData);
@@ -97,6 +79,21 @@ const HomeScreen = () => {
     setFilteredOrders(computeFilters(orders));
   }, [tab, date, statusFilter, searchQuery, orders]);
 
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const loadOrders = async () => {
+    try {
+      const res = await apiService.getOrders();
+      if (res.success && (res.data as any)?.data) {
+        setOrders((res.data as any).data);
+      }
+    } catch (e) {
+      console.error('Failed to load orders', e);
+    }
+  };
+
   const onChangeDate = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
@@ -109,20 +106,31 @@ const HomeScreen = () => {
     setTab(selectedTab);
   };
 
-  const handleAddOrder = (newOrder: any) => {
-    setOrders(prevOrders => [newOrder, ...prevOrders]);
+  const handleAddOrder = async (newOrder: any) => {
+    // Optimistic update: show immediately
+    setOrders(prev => [newOrder, ...prev]);
+    try {
+      const res = await apiService.createOrder(newOrder);
+      if (res.success && (res.data as any)?.data) {
+        const created = (res.data as any).data;
+        // Replace the temp item (matched by temp id or orderId) with server doc
+        setOrders(prev => prev.map(o => (o.id && o.id === newOrder.id) || (o.orderId && o.orderId === newOrder.orderId) ? created : o));
+      }
+    } catch (e) {
+      console.error('Failed to create order', e);
+      // Keep optimistic item; optionally flag unsynced
+    }
   };
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setFilteredOrders(computeFilters(orders));
-      setRefreshing(false);
-    }, 600);
+    await loadOrders();
+    setFilteredOrders(computeFilters(orders));
+    setRefreshing(false);
   };
 
   const markStatus = (id: string, status: 'paid' | 'credit' | 'pending') => {
-    setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)));
+    setOrders(prev => prev.map(o => ((o as any)._id === id || (o as any).id === id ? { ...o, status } : o)));
   };
 
   const renderLeftActions = (item: any) => (
@@ -135,7 +143,7 @@ const HomeScreen = () => {
         marginVertical: 8 * scale,
         borderRadius: 12 * scale,
       }}
-      onPress={() => markStatus(item.id, 'paid')}
+      onPress={() => markStatus(item._id || item.id, 'paid')}
     >
       <Ionicons name="checkmark" size={20 * scale} color="#fff" />
       <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Paid</Text>
@@ -152,7 +160,7 @@ const HomeScreen = () => {
         marginVertical: 8 * scale,
         borderRadius: 12 * scale,
       }}
-      onPress={() => markStatus(item.id, 'credit')}
+      onPress={() => markStatus(item._id || item.id, 'credit')}
     >
       <Ionicons name="close" size={20 * scale} color="#fff" />
       <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Credit</Text>
@@ -231,9 +239,9 @@ const HomeScreen = () => {
       {filteredOrders.length > 0 ? (
         <FlatList
           data={filteredOrders}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item._id || item.id}
           renderItem={renderOrderCard}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 80 * scale + (insets.bottom || 0) }]}
           ListHeaderComponent={
             <View>
               {/* Sticky filter header */}
@@ -308,7 +316,7 @@ const HomeScreen = () => {
           stickyHeaderIndices={[0]}
         />
       ) : (
-        <View>
+        <View style={{ paddingBottom: 80 * scale + (insets.bottom || 0) }}>
           {/* Non-sticky filters when there are no orders */}
           <View style={styles.stickyHeader}>
             <View style={styles.searchRow}>
@@ -379,21 +387,29 @@ const HomeScreen = () => {
       )}
 
       {/* Bottom Bar */}
-      <View style={styles.bottomBar}>
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            paddingBottom: (insets.bottom || 10 * scale),
+            height: 54 * scale + (insets.bottom || 10 * scale),
+          },
+        ]}
+      >
         <TouchableOpacity style={styles.bottomIcon}>
           <Ionicons name="home" size={20 * scale} color={COLORS.primary} />
           <Text style={[styles.bottomLabel, { color: COLORS.primary }]}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomIcon}>
-          <Ionicons name="search" size={20 * scale} color={COLORS.text} />
-          <Text style={styles.bottomLabel}>Search</Text>
+          <Ionicons name="people" size={20 * scale} color={COLORS.text} />
+          <Text style={styles.bottomLabel}>Customers</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddOrder(true)}>
           <Ionicons name="add" size={28 * scale} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomIcon}>
-          <Ionicons name="checkmark" size={20 * scale} color={COLORS.text} />
-          <Text style={styles.bottomLabel}>Paid</Text>
+          <Ionicons name="checkmark-circle-outline" size={20 * scale} color={COLORS.text} />
+          <Text style={styles.bottomLabel}>Completed</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomIcon}>
           <FontAwesome name="user" size={20 * scale} color={COLORS.text} />
