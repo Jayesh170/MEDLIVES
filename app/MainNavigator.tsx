@@ -6,6 +6,7 @@ import CustomersScreen from './CustomersScreen';
 import CompletedScreen from './CompletedScreen';
 import ProfileScreen from './ProfileScreen';
 import AddOrderFixed from './AddOrderFixed';
+import CustomerDetails from './CustomerDetails';
 
 const MainNavigator = () => {
   const [activeTab, setActiveTab] = useState('home');

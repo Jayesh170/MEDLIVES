@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +26,7 @@ const FONTS = {
 
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [userInfo] = useState({
     name: 'Dr. Omkar Medical',
     email: 'omkar@medical.com',
@@ -40,33 +42,59 @@ const ProfileScreen = () => {
       title: 'Edit Profile',
       icon: 'person-outline',
       action: 'edit',
+      route: '/EditProfile',
     },
     {
       id: '2',
-      title: 'Settings',
-      icon: 'settings-outline',
-      action: 'settings',
+      title: 'Account & Subscription',
+      icon: 'card-outline',
+      action: 'account',
+      route: '/AccountSubscription',
     },
     {
       id: '3',
-      title: 'Notifications',
-      icon: 'notifications-outline',
-      action: 'notifications',
+      title: 'Delivery User & Management',
+      icon: 'people-outline',
+      action: 'delivery',
+      route: '/DeliveryManagement',
     },
     {
       id: '4',
-      title: 'Help & Support',
-      icon: 'help-circle-outline',
-      action: 'help',
+      title: 'Security & Data',
+      icon: 'shield-checkmark-outline',
+      action: 'security',
+      route: '/SecurityData',
     },
     {
       id: '5',
-      title: 'About',
-      icon: 'information-circle-outline',
-      action: 'about',
+      title: 'Settings',
+      icon: 'settings-outline',
+      action: 'settings',
+      route: '/Settings',
     },
     {
       id: '6',
+      title: 'Notifications',
+      icon: 'notifications-outline',
+      action: 'notifications',
+      route: '/Notifications',
+    },
+    {
+      id: '7',
+      title: 'Help & Support',
+      icon: 'help-circle-outline',
+      action: 'help',
+      route: '/HelpSupport',
+    },
+    {
+      id: '8',
+      title: 'About',
+      icon: 'information-circle-outline',
+      action: 'about',
+      route: '/About',
+    },
+    {
+      id: '9',
       title: 'Logout',
       icon: 'log-out-outline',
       action: 'logout',
@@ -74,16 +102,23 @@ const ProfileScreen = () => {
     },
   ];
 
-  const handleMenuAction = (action: string) => {
-    console.log('Menu action:', action);
-    // Handle different menu actions here
+  const handleMenuAction = (action: string, route?: string) => {
+    if (action === 'logout') {
+      // Handle logout logic here
+      console.log('Logout action');
+      return;
+    }
+    
+    if (route) {
+      router.push(route);
+    }
   };
 
   const renderMenuItem = (item: any) => (
     <TouchableOpacity
       key={item.id}
       style={styles.menuItem}
-      onPress={() => handleMenuAction(item.action)}
+      onPress={() => handleMenuAction(item.action, item.route)}
     >
       <View style={styles.menuItemLeft}>
         <View style={styles.menuIconContainer}>
