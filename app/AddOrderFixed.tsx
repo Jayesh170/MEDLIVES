@@ -286,7 +286,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     onPress={() => handleNext(values, errors)}
                   >
                     <Text style={styles.nextButtonText}>Next</Text>
-                    <Ionicons name="chevron-forward" size={20 * scale} color="#fff" />
+                    <Ionicons name="chevron-forward" size={20 * scale} color={COLORS.primary} />
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
