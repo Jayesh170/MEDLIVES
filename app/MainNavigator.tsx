@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
 import HomeScreen from './HomeScreen';
@@ -12,6 +12,7 @@ const MainNavigator = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [showAddOrder, setShowAddOrder] = useState(false);
   const [ordersCount, setOrdersCount] = useState(0);
+  const homeScreenRef = useRef<any>(null);
 
   const handleTabPress = (tab: string) => {
     if (tab === 'add') {
@@ -22,8 +23,10 @@ const MainNavigator = () => {
   };
 
   const handleAddOrder = (newOrder: any) => {
-    // For now, just close the modal and increment count
-    // The HomeScreen will handle its own state
+    // Pass the order to HomeScreen for handling
+    if (homeScreenRef.current && homeScreenRef.current.handleAddOrder) {
+      homeScreenRef.current.handleAddOrder(newOrder);
+    }
     setShowAddOrder(false);
     setOrdersCount(prev => prev + 1);
   };
@@ -31,7 +34,7 @@ const MainNavigator = () => {
   const renderActiveScreen = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeScreen />;
+        return <HomeScreen ref={homeScreenRef} />;
       case 'customers':
         return <CustomersScreen />;
       case 'completed':
@@ -39,7 +42,7 @@ const MainNavigator = () => {
       case 'profile':
         return <ProfileScreen />;
       default:
-        return <HomeScreen />;
+        return <HomeScreen ref={homeScreenRef} />;
     }
   };
 

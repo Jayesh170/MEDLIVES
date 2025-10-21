@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
+import { Dimensions, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -14,6 +14,7 @@ const COLORS = {
   surface: '#FFFFFF',
   muted: '#888',
   border: '#eee',
+  chipBg: '#e0f7fa',
   success: '#65B924',
   danger: '#FF2A2A',
   warning: '#F4A261',

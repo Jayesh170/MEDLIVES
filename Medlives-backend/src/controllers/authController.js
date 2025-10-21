@@ -137,6 +137,9 @@ export const login = async (req, res) => {
 
     const token = generateToken(user);
 
+    // Get tenant business name
+    const tenant = await Tenant.findOne({ tenantCode: user.tenantCode });
+    
     res.json({
       success: true,
       token,
@@ -145,6 +148,7 @@ export const login = async (req, res) => {
         tenantCode: user.tenantCode,
         role: user.role,
         name: user.name,
+        businessName: tenant?.businessName || 'Medical Store',
       },
     });
   } catch (err) {

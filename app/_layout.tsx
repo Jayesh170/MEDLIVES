@@ -1,6 +1,6 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { ActivityIndicator, View, Text, TextInput } from "react-native";
+import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
@@ -36,12 +36,13 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
+      <Stack initialRouteName="HomeScreen" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" options={{ title: "Main" }} />
         <Stack.Screen name="(auth)/First" options={{ title: "Welcome" }} />
         <Stack.Screen name="(auth)/Register" options={{ title: "Register" }} />
         <Stack.Screen name="(auth)/LoginPage" options={{ title: "Login" }} />
         <Stack.Screen name="(auth)/SignUp" options={{ title: "Login" }} />
+        <Stack.Screen name="HomeScreen" options={{ headerShown: false }} />
         <Stack.Screen name="OrderDetails" options={{ headerShown: false }} />
         <Stack.Screen name="AddOrder" options={{ headerShown: false }} />
       </Stack>

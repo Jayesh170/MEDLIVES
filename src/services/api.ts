@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // API Response Types
 export interface ApiResponse<T = any> {
@@ -17,6 +18,7 @@ export interface LoginResponse {
     tenantCode: number;
     role: string;
     name: string;
+    businessName: string;
   };
 }
 
@@ -45,14 +47,25 @@ class ApiService {
   private baseURL: string;
 
   constructor(baseURL?: string) {
+    // Prefer env variable (configure via EXPO_PUBLIC_API_URL)
+    const envUrl = (process as any)?.env?.EXPO_PUBLIC_API_URL as string | undefined;
     if (baseURL) {
       this.baseURL = baseURL;
+    } else if (envUrl) {
+      this.baseURL = envUrl.replace(/\/$/, '');
     } else if (__DEV__) {
-      // Use your computer's IP address for mobile device testing
-      this.baseURL = 'http://10.21.92.158:5000/api';
+      // Emulator-friendly defaults
+      // Android emulator: 10.0.2.2 → host machine
+      // iOS simulator: localhost
+      this.baseURL = Platform.OS === 'android' ? 'http://10.0.2.2:5000/api' : 'http://localhost:5000/api';
     } else {
       this.baseURL = 'https://your-production-server.com/api';
     }
+  }
+
+  // Allow changing base URL at runtime if needed
+  setBaseURL(url: string) {
+    this.baseURL = url.replace(/\/$/, '');
   }
 
   // Get auth token from storage
@@ -102,7 +115,7 @@ class ApiService {
       };
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
 
       const response = await fetch(url, {
         ...config,
@@ -127,6 +140,14 @@ class ApiService {
       };
     } catch (error) {
       console.error('API request error:', error);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Request timeout - please check your internet connection',
+        };
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -171,6 +192,10 @@ class ApiService {
 
     if (response.success && response.data?.token) {
       await this.setAuthToken(response.data.token);
+      // Store user info for later use
+      if (response.data.user) {
+        await this.storeUserInfo(response.data.user);
+      }
     }
 
     return response;
@@ -238,6 +263,26 @@ class ApiService {
       return response.success ? response.data : null;
     } catch (error) {
       console.error('Error getting current user:', error);
+      return null;
+    }
+  }
+
+  // Store user info in AsyncStorage
+  async storeUserInfo(userInfo: any): Promise<void> {
+    try {
+      await AsyncStorage.setItem('userInfo', JSON.stringify(userInfo));
+    } catch (error) {
+      console.error('Error storing user info:', error);
+    }
+  }
+
+  // Get stored user info
+  async getStoredUserInfo(): Promise<any> {
+    try {
+      const userInfo = await AsyncStorage.getItem('userInfo');
+      return userInfo ? JSON.parse(userInfo) : null;
+    } catch (error) {
+      console.error('Error getting stored user info:', error);
       return null;
     }
   }

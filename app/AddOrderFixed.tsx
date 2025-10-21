@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { format } from 'date-fns';
 
 // Import our new components
-import Stepper from '../components/Stepper';
 import CustomerInfoStep from '../components/CustomerInfoStep';
 import MedicationStep from '../components/MedicationStep';
 import OrderSummary from '../components/OrderSummary';
+import Stepper from '../components/Stepper';
+import OrderSuccessModal from './components/OrderSuccessModal';
 
 const { width } = require('react-native').Dimensions.get('window');
 const scale = width / 320;
@@ -59,7 +60,7 @@ const orderValidationSchema = Yup.object().shape({
 type AddOrderProps = {
   visible: boolean;
   onClose: () => void;
-  onAddOrder: (values: any) => void;
+  onAddOrder: (values: any) => Promise<boolean> | boolean;
   existingOrdersCount: number;
 };
 
@@ -68,9 +69,15 @@ const steps = ['Customer Info', 'Medications', 'Order Summary'];
 export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersCount }: AddOrderProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [showDeliveryAssignment, setShowDeliveryAssignment] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<{ orderId?: string; customerName?: string } | null>(null);
 
   const transformOrderData = (formValues: any) => {
-    const totalAmount = formValues.medications.reduce((sum: number, med: any) => 
+    const cleanedMeds = (formValues.medications || []).filter(
+      (med: any) => med && String(med.name || '').trim() !== '' && Number(med.qty) > 0 && Number(med.price) >= 0
+    );
+
+    const totalAmount = cleanedMeds.reduce((sum: number, med: any) => 
       sum + (med.qty * parseFloat(med.price || 0)), 0);
     
     const discount = totalAmount * (formValues.discountPercent || 0) / 100;
@@ -87,7 +94,7 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       address,
       contactNumber: formValues.contactNumber,
       customerName: formValues.customerName.toUpperCase(),
-      medications: formValues.medications.map((med: any) => ({
+      medications: cleanedMeds.map((med: any) => ({
         ...med,
         price: parseFloat(med.price || 0),
       })),
@@ -147,11 +154,8 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
         return;
       }
     } else if (currentStep === 2) {
-      // Order Summary validation - check delivery boy assignment
-      if (!values.deliveryBoy) {
-        Alert.alert('Required Field', 'Please assign a delivery boy before creating the order');
-        return;
-      }
+      // Order Summary validation - delivery boy is optional for now
+      // Can be assigned later during delivery
     }
 
     // Navigate to next step
@@ -167,25 +171,34 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
     }
   };
 
-  const handleSubmit = (values: any, helpers: { resetForm: () => void }) => {
+  const handleSubmit = async (
+    values: any,
+    helpers: { resetForm: () => void; setSubmitting: (isSubmitting: boolean) => void }
+  ) => {
+    console.log('handleSubmit called with values:', values);
     try {
+      helpers.setSubmitting(true);
       const orderData = transformOrderData(values);
-      // Immediately submit to parent (backend integration happens there)
-      onAddOrder(orderData);
-      helpers.resetForm();
-      setCurrentStep(0);
-      setShowDeliveryAssignment(false);
-      onClose();
-      Alert.alert(
-        'Success',
-        'Order created successfully! It has been added to the orders list.',
-        [{ text: 'OK' }]
-      );
-      
+      console.log('Order data transformed:', orderData);
+
+      const result = await Promise.resolve(onAddOrder(orderData));
+      console.log('onAddOrder result:', result);
+
+      if (result) {
+        helpers.resetForm();
+        setCurrentStep(0);
+        setShowDeliveryAssignment(false);
+        setCreatedOrder({ orderId: orderData.orderId, customerName: orderData.customerName });
+        setShowSuccess(true);
+      } else {
+        Alert.alert('Error', 'Failed to create order. Please try again.');
+      }
     } catch (error) {
       setShowDeliveryAssignment(false);
       Alert.alert('Error', 'Failed to create order. Please try again.');
       console.error('Order creation error:', error);
+    } finally {
+      helpers.setSubmitting(false);
     }
   };
 
@@ -225,10 +238,12 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
             notes: '',
             deliveryBoy: null,
           }}
-          validationSchema={orderValidationSchema}
+          validate={() => ({})}
+          validateOnChange={false}
+          validateOnBlur={false}
           onSubmit={handleSubmit}
         >
-          {({ values, handleChange, handleBlur, setFieldValue, handleSubmit, errors, touched, isSubmitting }) => {
+          {({ values, handleChange, handleBlur, setFieldValue, handleSubmit: formikSubmit, errors, touched, isSubmitting }) => {
             // Create wrapper functions to match component interfaces
             const wrappedHandleChange = (field: string) => (value: string) => {
               setFieldValue(field, value);
@@ -291,7 +306,10 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                 ) : (
                   <TouchableOpacity
                     style={styles.submitButton}
-                    onPress={() => handleSubmit()}
+                    onPress={() => {
+                      console.log('Create Order button pressed');
+                      formikSubmit();
+                    }}
                     disabled={isSubmitting}
                   >
                     <Text style={styles.submitButtonText}>
@@ -309,6 +327,16 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
                     <Text style={styles.deliverySubtitle}>Please wait while we process your order</Text>
                   </View>
                 </View>
+              )}
+
+              {/* Success Modal */}
+              {showSuccess && (
+                <OrderSuccessModal
+                  visible={showSuccess}
+                  orderId={createdOrder?.orderId}
+                  customerName={createdOrder?.customerName}
+                  onClose={() => { setShowSuccess(false); onClose(); }}
+                />
               )}
             </>
             );

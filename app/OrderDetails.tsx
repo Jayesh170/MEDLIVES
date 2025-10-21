@@ -47,62 +47,75 @@ const OrderDetails = () => {
         <Text style={styles.headerTitle}>Order Details</Text>
       </View>
       <View style={styles.container}>
-        <Text style={styles.orderId}>Order #{orderId}</Text>
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Delivery Address</Text>
-            <Text style={styles.value}>{address}</Text>
-          </View>
-          <MaterialIcons name="location-pin" size={22} color="#222" style={{ marginTop: 8 }} />
-        </View>
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Contact Number</Text>
-            <Text style={[styles.value, { color: '#2EC4D6', textDecorationLine: 'underline' }]}>{contactNumber}</Text>
-          </View>
-          <TouchableOpacity onPress={handleCall}>
-            <Ionicons name="call" size={22} color="#222" style={{ marginTop: 8 }} />
-          </TouchableOpacity>
-        </View>
-        <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'center' }]}>
-          <Text style={styles.label}>Customer Name</Text>
-          <Text style={styles.value}>{customerName}</Text>
-        </View>
-        <Text style={{ fontWeight: 'bold', fontSize: 16, borderWidth: 1, borderColor: '#222', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start', marginTop: 10, marginBottom: 4 }}>List Of Items</Text>
-        {Array.isArray(meds) && meds.map((med, idx) => {
-          const qty = Number(med.qty ?? 0);
-          const price = Number(med.price ?? 0);
-          return (
-            <View key={idx} style={{ marginTop: 12 }}>
-              <Text style={styles.medName}>{med.name}</Text>
-              <View style={styles.medRow}>
-                <Text style={styles.medQty}>Quantity: {qty}</Text>
-                <Text style={styles.medCalc}>{qty} x {price} = <Text style={{ fontWeight: 'bold' }}>{qty * price}</Text></Text>
-              </View>
+        {/* Top info card */}
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.orderTitle}>Order #{orderId}</Text>
+            <View style={styles.statusPill}>
+              <Text style={styles.statusPillText}>{String(status || 'pending').toUpperCase()}</Text>
             </View>
-          );
-        })}
-        <View style={styles.amountSection}>
-          <View style={styles.amountRow}>
+          </View>
+          <View style={[styles.rowBetween, { marginTop: 8 }]}>
+            <Text style={styles.label}>Customer</Text>
+            <Text style={styles.value}>{customerName}</Text>
+          </View>
+          <View style={[styles.rowBetween, { marginTop: 6 }]}>
+            <Text style={styles.label}>Contact</Text>
+            <TouchableOpacity onPress={handleCall}>
+              <Text style={[styles.value, { color: '#2EC4D6', textDecorationLine: 'underline' }]}>{contactNumber}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ marginTop: 6 }}>
+            <Text style={styles.label}>Delivery Address</Text>
+            <View style={styles.addressRow}>
+              <Text style={[styles.value, { flex: 1 }]}>{address}</Text>
+              <MaterialIcons name="location-pin" size={18} color="#222" />
+            </View>
+          </View>
+        </View>
+
+        {/* Items list */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Items</Text>
+          {Array.isArray(meds) && meds.map((med, idx) => {
+            const qty = Number((med as any).qty ?? 0);
+            const price = Number((med as any).price ?? 0);
+            return (
+              <View key={idx} style={styles.itemRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.medName}>{(med as any).name}</Text>
+                  <Text style={styles.medSub}>{qty} x {price} = {qty * price}</Text>
+                </View>
+                <Text style={styles.itemAmt}>₹{(qty * price).toFixed(2)}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Totals */}
+        <View style={styles.card}>
+          <View style={styles.amountRow}> 
             <Text style={styles.amountLabel}>Total Amount</Text>
             <Text style={styles.amountValue}>₹{Number(totalAmount).toFixed(2)}</Text>
           </View>
-          <View style={styles.amountRow}>
+          <View style={styles.amountRow}> 
             <Text style={styles.discountLabel}>DISCOUNT(%)</Text>
             <Text style={styles.discountValue}>-₹{Number(discount).toFixed(2)} ({discountPercent}%)</Text>
           </View>
-        </View>
-        <View style={styles.payableRow}>
-          <Text style={styles.payableLabel}>Payable Amount</Text>
-          <Text style={styles.payableValue}>₹{Number(payableAmount).toFixed(2)}</Text>
-        </View>
-        <View style={styles.statusRow}>
-          <TouchableOpacity style={[styles.statusBtn, { backgroundColor: '#65B924' }]}>
-            <Text style={styles.statusBtnText}>PAID</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.statusBtn, { backgroundColor: '#FF2A2A' }]}>
-            <Text style={styles.statusBtnText}>CREDIT</Text>
-          </TouchableOpacity>
+          <View style={styles.payableRow}> 
+            <Text style={styles.payableLabel}>Payable Amount</Text>
+            <Text style={styles.payableValue}>₹{Number(payableAmount).toFixed(2)}</Text>
+          </View>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#65B924' }]}>
+              <Ionicons name="checkmark" size={18} color="#fff" />
+              <Text style={styles.actionBtnText}>Mark Paid</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FF2A2A' }]}>
+              <Ionicons name="close" size={18} color="#fff" />
+              <Text style={styles.actionBtnText}>Mark Credit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -137,18 +150,58 @@ const styles = StyleSheet.create({
     marginRight: 36, // to center title with back button
   },
   container: {
-    padding: 20,
+    padding: 16,
     flex: 1,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  orderTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#222',
   },
   orderId: {
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 12,
   },
+  statusPill: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: '#F4A261',
+  },
+  statusPillText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 10,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
   },
   label: {
     fontWeight: 'bold',
@@ -159,10 +212,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#222',
   },
+  sectionTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#222',
+    marginBottom: 4,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
   medName: {
     fontWeight: 'bold',
     fontSize: 15,
     color: '#222',
+  },
+  medSub: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  itemAmt: {
+    fontWeight: 'bold',
+    color: '#0A174E',
   },
   medRow: {
     flexDirection: 'row',
@@ -223,24 +299,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#222',
   },
-  statusRow: {
+  actionsRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
-  statusBtn: {
+  actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 12,
     paddingVertical: 8,
-    paddingHorizontal: 32,
-    marginHorizontal: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+    flex: 1,
+    marginHorizontal: 4,
   },
-  statusBtnText: {
+  actionBtnText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 6,
   },
 });
 

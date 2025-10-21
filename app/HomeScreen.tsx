@@ -1,13 +1,13 @@
-import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
-import React, { useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import AddOrder from './AddOrderFixed';
 import { apiService } from '../src/services/api';
+import AddOrder from './AddOrderFixed';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -34,7 +34,7 @@ const FONTS = {
 
 const ordersData: any[] = [];
 
-const HomeScreen = () => {
+const HomeScreen = forwardRef<any, any>((props, ref) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('today');
@@ -46,6 +46,7 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'credit' | 'pending'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   const formatINR = (n: number) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -81,13 +82,25 @@ const HomeScreen = () => {
 
   useEffect(() => {
     loadOrders();
+    loadUserInfo();
   }, []);
+
+  const loadUserInfo = async () => {
+    try {
+      const user = await apiService.getStoredUserInfo();
+      setUserInfo(user);
+    } catch (error) {
+      console.error('Failed to load user info:', error);
+    }
+  };
 
   const loadOrders = async () => {
     try {
       const res = await apiService.getOrders();
       if (res.success && (res.data as any)?.data) {
         setOrders((res.data as any).data);
+      } else {
+        console.log('No orders found or API unavailable');
       }
     } catch (e) {
       console.error('Failed to load orders', e);
@@ -106,22 +119,36 @@ const HomeScreen = () => {
     setTab(selectedTab);
   };
 
-  const handleAddOrder = async (newOrder: any) => {
+  const handleAddOrder = async (newOrder: any): Promise<boolean> => {
     // Optimistic update: show immediately
     setOrders(prev => [newOrder, ...prev]);
+    console.log('Order created successfully in offline mode:', newOrder.customerName);
+    
     try {
       const res = await apiService.createOrder(newOrder);
       if (res.success && (res.data as any)?.data) {
         const created = (res.data as any).data;
-        // Replace the temp item (matched by temp id or orderId) with server doc
         setOrders(prev => prev.map(o => (o.id && o.id === newOrder.id) || (o.orderId && o.orderId === newOrder.orderId) ? created : o));
+        console.log('Order synced with server successfully');
+        // Fetch latest list from DB to ensure exact ordering and fields
+        await loadOrders();
+        return true;
+      } else {
+        console.log('Order saved locally, will sync when server is available');
+        setOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, _unsynced: true } : o));
+        return true; // still consider success for UI
       }
     } catch (e) {
-      console.error('Failed to create order', e);
-      // Keep optimistic item; optionally flag unsynced
+      console.error('Failed to create order on server:', e);
+      setOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, _unsynced: true } : o));
+      return true; // optimistic success
     }
   };
 
+  // Expose handleAddOrder to parent component via ref
+  useImperativeHandle(ref, () => ({
+    handleAddOrder
+  }));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -170,55 +197,68 @@ const HomeScreen = () => {
 
   const renderOrderCard = ({ item }: any) => (
     <Swipeable renderLeftActions={() => renderLeftActions(item)} renderRightActions={() => renderRightActions(item)}>
-      <TouchableOpacity onPress={() => navigation.navigate('OrderDetails', { ...item, medications: JSON.stringify(item.medications) })} activeOpacity={0.8}>
+      <TouchableOpacity onPress={() => navigation.navigate('OrderDetails', { ...item, medications: JSON.stringify(item.medications) })} activeOpacity={0.9}>
         <View style={styles.card}>
-          <Text style={styles.cardDate}>{item.date}</Text>
-          <Text style={styles.cardText}><Text style={styles.bold}>ORDER ID :</Text> {item.orderId}</Text>
-          <Text style={styles.cardText}><Text style={styles.bold}>ORDER BY :</Text> {item.customerName}</Text>
-          <Text style={styles.cardText} numberOfLines={1}><Text style={styles.bold}>ADDRESS :</Text> {item.address}</Text>
-          <Text style={styles.cardText}><Text style={styles.bold}>LIST OF ORDERS</Text></Text>
-          <View style={styles.orderListHeader}>
-            <Text style={[styles.bold, { flex: 1 }]}>NAME</Text>
-            <Text style={[styles.bold, { flex: 1, textAlign: 'center' }]}>QTY</Text>
-            <Text style={[styles.bold, { flex: 1, textAlign: 'right' }]}>MRP</Text>
+          <View style={styles.cardHeaderRow}>
+            <View>
+              <Text style={styles.cardDate}>{item.date}</Text>
+              <Text style={styles.cardId}>Order #{item.orderId}</Text>
+            </View>
+            <View
+              style={[
+                styles.statusPill,
+                {
+                  backgroundColor:
+                    item.status === 'paid'
+                      ? COLORS.success
+                      : item.status === 'credit'
+                      ? COLORS.danger
+                      : COLORS.warning,
+                },
+              ]}
+            >
+              <Text style={styles.statusPillText}>
+                {item.status === 'paid' ? 'PAID' : item.status === 'credit' ? 'CREDIT' : 'PENDING'}
+              </Text>
+            </View>
           </View>
-        {item.medications.slice(0, 2).map((med: any, idx: number) => (
-          <View style={styles.orderListRow} key={idx}>
-            <Text style={[styles.medCell, { flex: 1 }]}>{med.name}</Text>
-            <Text style={[styles.medCell, { flex: 1, textAlign: 'center' }]}>{med.qty}</Text>
-            <Text style={[styles.medCell, { flex: 1, textAlign: 'right' }]}>{med.qty} x {med.price} = {med.qty * med.price}</Text>
+
+          <View style={styles.rowBetween}>
+            <Text style={styles.cardLabel}>Customer</Text>
+            <Text style={styles.cardValue}>{item.customerName}</Text>
           </View>
-        ))}
-        {item.medications.length > 2 && (
-          <Text style={styles.moreLink}>More...</Text>
-        )}
-        <Text style={styles.cardText}><Text style={styles.bold}>TOTAL AMOUNT :</Text> {formatINR(item.totalAmount)}</Text>
-        <View style={styles.statusRow}>
-          <TouchableOpacity style={[styles.statusBtn, { backgroundColor: COLORS.success }]} activeOpacity={0.7}>
-            <Ionicons name="checkmark" size={18 * scale} color="#fff" />
-            <Text style={styles.statusBtnText}>PAID</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.statusBtn, { backgroundColor: COLORS.danger }]} activeOpacity={0.7}>
-            <Text style={styles.statusBtnText}>CREDIT</Text>
-          </TouchableOpacity>
-        </View>
-        <View
-          style={[
-            styles.statusPill,
-            {
-              backgroundColor:
-                item.status === 'paid'
-                  ? COLORS.success
-                  : item.status === 'credit'
-                  ? COLORS.danger
-                  : COLORS.warning,
-            },
-          ]}
-        >
-          <Text style={styles.statusPillText}>
-            {item.status === 'paid' ? 'PAID' : item.status === 'credit' ? 'CREDIT' : 'PENDING'}
-          </Text>
-        </View>
+          <View style={styles.rowBetween}>
+            <Text style={styles.cardLabel}>Address</Text>
+            <Text style={[styles.cardValue, { flex: 1, textAlign: 'right' }]} numberOfLines={1}>{item.address}</Text>
+          </View>
+
+          <View style={styles.chipsWrap}>
+            {item.medications.slice(0, 3).map((m: any, idx: number) => (
+              <View key={idx} style={styles.chipItem}>
+                <Text style={styles.itemChipText}>{m.name} · {m.qty}x</Text>
+              </View>
+            ))}
+            {item.medications.length > 3 && (
+              <View style={[styles.chipItem, { backgroundColor: COLORS.primary }]}>
+                <Text style={[styles.itemChipText, { color: '#fff' }]}>+{item.medications.length - 3} more</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.totalsRow}>
+            <View style={styles.totalBox}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>{formatINR(item.totalAmount)}</Text>
+            </View>
+            <View style={styles.totalBox}>
+              <Text style={styles.totalLabel}>Discount</Text>
+              <Text style={styles.totalValue}>-{formatINR(item.discount || 0)}</Text>
+            </View>
+            <View style={styles.totalBox}>
+              <Text style={styles.totalLabel}>Payable</Text>
+              <Text style={[styles.totalValue, { color: COLORS.text }]}>{formatINR(item.payableAmount || item.totalAmount)}</Text>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     </Swipeable>
@@ -232,7 +272,12 @@ const HomeScreen = () => {
           <View style={styles.logoBox}>
             <MaterialIcons name="local-hospital" size={24 * scale} color="#fff" />
           </View>
-          <Text style={styles.headerTitle}>OMKAR MEDICAL</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>{userInfo?.businessName || 'MEDICAL STORE'}</Text>
+            {userInfo?.name && (
+              <Text style={styles.headerSubtitle}>Welcome, {userInfo.name}</Text>
+            )}
+          </View>
         </View>
       </View>
 
@@ -397,7 +442,7 @@ const HomeScreen = () => {
       />
     </SafeAreaView>
   );
-};
+});
 
 export default HomeScreen;
 
@@ -434,6 +479,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: FONTS.bold,
     letterSpacing: 1,
+  },
+  headerSubtitle: {
+    color: '#fff',
+    fontSize: 12 * scale,
+    fontFamily: FONTS.regular,
+    opacity: 0.9,
+    marginTop: 2 * scale,
   },
   stickyHeader: {
     backgroundColor: COLORS.surface,
@@ -531,17 +583,22 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 20 * scale,
-    padding: 12 * scale,
-    marginBottom: 16 * scale,
-    minHeight: 180 * scale,
+    borderRadius: 16 * scale,
+    padding: 14 * scale,
+    marginBottom: 12 * scale,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8 * scale,
   },
   cardDate: {
     fontWeight: 'bold',
@@ -550,30 +607,51 @@ const styles = StyleSheet.create({
     color: '#222',
     fontFamily: FONTS.semi,
   },
-  cardText: {
+  cardId: {
     fontSize: 12 * scale,
-    color: '#222',
-    marginBottom: 2 * scale,
+    color: COLORS.muted,
     fontFamily: FONTS.regular,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4 * scale,
+  },
+  cardLabel: {
+    fontSize: 12 * scale,
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+  },
+  cardValue: {
+    fontSize: 13 * scale,
+    color: '#222',
+    fontFamily: FONTS.semi,
+    marginLeft: 8 * scale,
   },
   bold: {
     fontWeight: 'bold',
     color: '#222',
     fontFamily: FONTS.semi,
   },
-  orderListHeader: {
+  chipsWrap: {
     flexDirection: 'row',
-    marginTop: 6 * scale,
-    marginBottom: 2 * scale,
+    flexWrap: 'wrap',
+    marginTop: 8 * scale,
+    gap: 6 * scale,
   },
-  orderListRow: {
-    flexDirection: 'row',
-    marginBottom: 2 * scale,
+  chipItem: {
+    paddingVertical: 4 * scale,
+    paddingHorizontal: 8 * scale,
+    borderRadius: 12 * scale,
+    backgroundColor: COLORS.chipBg,
+    borderWidth: 1,
+    borderColor: COLORS.primaryAlt,
   },
-  medCell: {
-    fontFamily: FONTS.regular,
-    color: '#222',
-    fontSize: 12 * scale,
+  itemChipText: {
+    fontSize: 11 * scale,
+    color: COLORS.text,
+    fontFamily: FONTS.semi,
   },
   statusRow: {
     flexDirection: 'row',
@@ -596,10 +674,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semi,
   },
   statusPill: {
-    position: 'absolute',
-    right: 12 * scale,
-    top: 12 * scale,
-    paddingVertical: 3 * scale,
+    paddingVertical: 4 * scale,
     paddingHorizontal: 10 * scale,
     borderRadius: 12 * scale,
   },
@@ -608,6 +683,32 @@ const styles = StyleSheet.create({
     fontSize: 11 * scale,
     fontFamily: FONTS.semi,
     letterSpacing: 0.5,
+  },
+  totalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10 * scale,
+  },
+  totalBox: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingVertical: 8 * scale,
+    paddingHorizontal: 10 * scale,
+    borderRadius: 12 * scale,
+    marginHorizontal: 3 * scale,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  totalLabel: {
+    fontSize: 11 * scale,
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+  },
+  totalValue: {
+    fontSize: 13 * scale,
+    color: COLORS.text,
+    fontFamily: FONTS.bold,
+    marginTop: 2 * scale,
   },
   metricsRow: {
     flexDirection: 'row',
