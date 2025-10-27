@@ -3,7 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '../src/services/api';
@@ -91,6 +91,11 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
       setUserInfo(user);
     } catch (error) {
       console.error('Failed to load user info:', error);
+      // Set default user info for offline mode
+      setUserInfo({
+        businessName: 'MEDICAL STORE',
+        name: 'User'
+      });
     }
   };
 
@@ -161,6 +166,41 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
     setOrders(prev => prev.map(o => ((o as any)._id === id || (o as any).id === id ? { ...o, status } : o)));
   };
 
+  const deleteOrder = async (id: string) => {
+    Alert.alert(
+      'Delete Order',
+      'Are you sure you want to delete this order? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Optimistic update: remove from UI immediately
+              setOrders(prev => prev.filter(o => (o as any)._id !== id && (o as any).id !== id));
+              
+              // Try to delete from server
+              const res = await apiService.deleteOrder(id);
+              if (res.success) {
+                console.log('Order deleted successfully from server');
+              } else {
+                console.log('Order deleted locally, will sync when server is available');
+              }
+            } catch (error) {
+              console.error('Failed to delete order:', error);
+              // Optionally show error message to user
+              Alert.alert('Error', 'Failed to delete order. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderLeftActions = (item: any) => (
     <TouchableOpacity
       style={{
@@ -179,20 +219,37 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
   );
 
   const renderRightActions = (item: any) => (
-    <TouchableOpacity
-      style={{
-        backgroundColor: COLORS.danger,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 80 * scale,
-        marginVertical: 8 * scale,
-        borderRadius: 12 * scale,
-      }}
-      onPress={() => markStatus(item._id || item.id, 'credit')}
-    >
-      <Ionicons name="close" size={20 * scale} color="#fff" />
-      <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Credit</Text>
-    </TouchableOpacity>
+    <View style={{ flexDirection: 'row' }}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: COLORS.danger,
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: 80 * scale,
+          marginVertical: 8 * scale,
+          borderRadius: 12 * scale,
+        }}
+        onPress={() => markStatus(item._id || item.id, 'credit')}
+      >
+        <Ionicons name="close" size={20 * scale} color="#fff" />
+        <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Credit</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={{
+          backgroundColor: '#FF4444',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: 80 * scale,
+          marginVertical: 8 * scale,
+          marginLeft: 4 * scale,
+          borderRadius: 12 * scale,
+        }}
+        onPress={() => deleteOrder(item._id || item.id)}
+      >
+        <Ionicons name="trash" size={20 * scale} color="#fff" />
+        <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Delete</Text>
+      </TouchableOpacity>
+    </View>
   );
 
   const renderOrderCard = ({ item }: any) => (

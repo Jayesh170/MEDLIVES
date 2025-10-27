@@ -8,6 +8,7 @@ import {
 
 const router = express.Router();
 
+
 /**
  * Auth Routes
  * - OTP routes are still for tenant registration flow
