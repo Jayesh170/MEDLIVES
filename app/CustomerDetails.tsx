@@ -78,7 +78,27 @@ const CustomerDetails = () => {
   };
 
   const handleWhatsApp = () => {
-    const message = `Hello ${customer.name}, I hope you're doing well. This is regarding your recent orders.`;
+    let message = `Hello ${customer.name}, I hope you're doing well. This is regarding your account status.\n\n`;
+    
+    // Calculate actual totals from orders
+    const totalBilling = customerOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const amountPaid = totalBilling - customer.creditAmount;
+    
+    if (customer.hasCredit && customer.creditAmount > 0) {
+      message += `💰 Total Billing Amount: ₹${totalBilling}\n`;
+      message += `✅ Amount Paid: ₹${amountPaid}\n`;
+      message += `📋 Credit Balance: ₹${customer.creditAmount}\n`;
+      message += `📅 Last Order: ${customer.lastOrder}\n\n`;
+      message += `Please let me know if you'd like to discuss your credit balance or place a new order.`;
+    } else {
+      message += `💰 Total Billing Amount: ₹${totalBilling}\n`;
+      message += `✅ Amount Paid: ₹${totalBilling}\n`;
+      message += `📋 Credit Balance: ₹0\n`;
+      message += `📅 Last Order: ${customer.lastOrder}\n`;
+      message += `✅ No outstanding credit balance\n\n`;
+      message += `Please let me know if you'd like to place a new order or have any questions.`;
+    }
+    
     Linking.openURL(`whatsapp://send?phone=${customer.phone}&text=${encodeURIComponent(message)}`);
   };
 
@@ -283,8 +303,6 @@ const styles = StyleSheet.create({
   headerActionBtn: {
     marginLeft: 12 * scale,
     padding: 8 * scale,
-    backgroundColor: COLORS.primaryAlt,
-    borderRadius: 20 * scale,
   },
   customerHeader: {
     paddingHorizontal: 16 * scale,

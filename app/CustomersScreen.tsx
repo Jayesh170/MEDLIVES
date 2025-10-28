@@ -508,18 +508,20 @@ const CustomersScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity 
-            style={styles.homeButton}
-            onPress={() => router.push('/')}
-          >
-            <Ionicons name="home" size={20 * scale} color="#fff" />
-          </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.replace('/')}
+        >
+          <Ionicons name="arrow-back" size={20 * scale} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={styles.customerSection}>
           <View style={styles.logoBox}>
             <Ionicons name="people" size={24 * scale} color="#fff" />
           </View>
           <Text style={styles.headerTitle}>CUSTOMERS</Text>
         </View>
+        
         <TouchableOpacity 
           style={styles.filterButton}
           onPress={() => setShowFilters(true)}
@@ -644,7 +646,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 16 * scale,
     paddingTop: 8 * scale,
@@ -654,22 +655,17 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20 * scale,
     borderBottomRightRadius: 20 * scale,
   },
-  homeButton: {
-    width: 32 * scale,
-    height: 32 * scale,
-    backgroundColor: COLORS.primaryAlt,
-    borderRadius: 8 * scale,
+  backButton: {
+    padding: 8 * scale,
+    marginRight: 12 * scale,
+  },
+  customerSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8 * scale,
+    flex: 1,
   },
   logoBox: {
-    width: 32 * scale,
-    height: 32 * scale,
-    backgroundColor: COLORS.primaryAlt,
-    borderRadius: 8 * scale,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 8 * scale,
     marginRight: 8 * scale,
   },
   headerTitle: {
@@ -682,10 +678,7 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primaryAlt,
-    paddingHorizontal: 12 * scale,
-    paddingVertical: 8 * scale,
-    borderRadius: 20 * scale,
+    padding: 8 * scale,
     position: 'relative',
   },
   filterBadge: {
