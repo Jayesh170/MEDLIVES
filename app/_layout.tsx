@@ -45,6 +45,7 @@ export default function RootLayout() {
         <Stack.Screen name="HomeScreen" options={{ headerShown: false }} />
         <Stack.Screen name="OrderDetails" options={{ headerShown: false }} />
         <Stack.Screen name="AddOrder" options={{ headerShown: false }} />
+        <Stack.Screen name="CompletedScreen" options={{ headerShown: false }} />
       </Stack>
     </GestureHandlerRootView>
   );

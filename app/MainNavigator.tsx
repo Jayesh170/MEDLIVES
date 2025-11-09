@@ -38,7 +38,7 @@ const MainNavigator = () => {
       case 'customers':
         return <CustomersScreen />;
       case 'completed':
-        return <CompletedScreen />;
+        return <CompletedScreen onBackPress={() => setActiveTab('home')} />;
       case 'profile':
         return <ProfileScreen />;
       default:
