@@ -201,7 +201,7 @@ const SignUpPage = () => {
           onProceedToLogin={() => {
             setShowSuccessModal(false);
             // Navigate to login page with pre-filled credentials
-            router.push({
+            router.replace({
               pathname: "/(auth)/LoginPage",
               params: {
                 tenantCode: registrationData.tenantCode.toString(),

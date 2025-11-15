@@ -107,7 +107,7 @@ const LoginPage = () => {
       values.password === params.password
     ) {
       // Successful login - navigate to HomeScreen
-      router.replace("/HomeScreen");
+      router.replace("/");
     } else {
       // Invalid credentials
       setLoginError("Invalid credentials. Please check your Tenant Code, User ID, and Password.");
