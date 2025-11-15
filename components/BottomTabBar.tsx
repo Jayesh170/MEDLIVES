@@ -48,7 +48,7 @@ const BottomTabBar: React.FC<BottomTabBarProps> = ({ activeTab, onTabPress }) =>
     },
     {
       id: 'completed',
-      label: 'Completed',
+      label: 'Completed Orders',
       icon: 'checkmark-circle-outline',
       iconType: 'Ionicons' as const,
     },
@@ -67,13 +67,14 @@ const BottomTabBar: React.FC<BottomTabBarProps> = ({ activeTab, onTabPress }) =>
     return <Ionicons name={iconName as any} size={size} color={color} />;
   };
 
+  const bottomPadding = Math.max(insets.bottom, 8);
+
   return (
     <View
       style={[
         styles.bottomBar,
         {
-          paddingBottom: (insets.bottom || 10 * scale),
-          height: 54 * scale + (insets.bottom || 10 * scale),
+          paddingBottom: bottomPadding,
         },
       ]}
     >
@@ -83,13 +84,15 @@ const BottomTabBar: React.FC<BottomTabBarProps> = ({ activeTab, onTabPress }) =>
 
         if (isSpecial) {
           return (
-            <TouchableOpacity
-              key={tab.id}
-              style={styles.addBtn}
-              onPress={() => onTabPress(tab.id)}
-            >
-              <Ionicons name="add" size={28 * scale} color="#fff" />
-            </TouchableOpacity>
+            <View key={tab.id} style={styles.addBtnContainer}>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => onTabPress(tab.id)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={28 * scale} color="#fff" />
+              </TouchableOpacity>
+            </View>
           );
         }
 
@@ -98,11 +101,12 @@ const BottomTabBar: React.FC<BottomTabBarProps> = ({ activeTab, onTabPress }) =>
             key={tab.id}
             style={styles.bottomIcon}
             onPress={() => onTabPress(tab.id)}
+            activeOpacity={0.7}
           >
             {renderIcon(
               tab.iconType,
               tab.icon,
-              20 * scale,
+              22 * scale,
               isActive ? COLORS.primary : COLORS.text
             )}
             <Text
@@ -110,6 +114,9 @@ const BottomTabBar: React.FC<BottomTabBarProps> = ({ activeTab, onTabPress }) =>
                 styles.bottomLabel,
                 { color: isActive ? COLORS.primary : COLORS.text },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
             >
               {tab.label}
             </Text>
@@ -127,26 +134,42 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
+    alignItems: 'flex-start',
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingHorizontal: 12 * scale,
-    paddingVertical: 10 * scale,
-    height: 64 * scale,
+    paddingHorizontal: 4,
+    paddingTop: 6 * scale,
+    minHeight: 58 * scale,
     zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 5,
   },
   bottomIcon: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 56 * scale,
-    paddingHorizontal: 4 * scale,
+    justifyContent: 'flex-start',
+    paddingTop: 4 * scale,
+    paddingHorizontal: 2,
+    minWidth: 0,
   },
   bottomLabel: {
     marginTop: 3 * scale,
-    fontSize: 11 * scale,
+    fontSize: Math.max(9 * scale, 10),
     fontFamily: FONTS.semi,
+    textAlign: 'center',
+    minHeight: 14 * scale,
+  },
+  addBtnContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 0,
+    paddingHorizontal: 2,
+    minWidth: 0,
   },
   addBtn: {
     width: 56 * scale,
@@ -155,13 +178,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 8 * scale,
-    marginTop: -28 * scale,
+    marginTop: -22 * scale,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
   },
 });
 

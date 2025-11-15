@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -59,12 +60,31 @@ const completedOrdersData = [
   },
 ];
 
-const CompletedScreen = () => {
+interface CompletedScreenProps {
+  onBackPress?: () => void;
+}
+
+const CompletedScreen: React.FC<CompletedScreenProps> = ({ onBackPress }) => {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState(completedOrdersData);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'credit'>('all');
   const [filteredOrders, setFilteredOrders] = useState(completedOrdersData);
+
+  // Handle back navigation
+  const handleBackPress = () => {
+    if (onBackPress) {
+      // If callback provided (e.g., from MainNavigator), use it
+      onBackPress();
+    } else if (router.canGoBack()) {
+      // If navigated directly and can go back, go back
+      router.back();
+    } else {
+      // Fallback: navigate to home/index
+      router.push('/');
+    }
+  };
 
   React.useEffect(() => {
     let filtered = orders;
@@ -89,8 +109,32 @@ const CompletedScreen = () => {
 
   const formatINR = (n: number) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const handleOrderPress = (item: any) => {
+    // Navigate to order details
+    router.push({
+      pathname: '/OrderDetails',
+      params: {
+        orderId: item.orderId,
+        customerName: item.customerName,
+        address: item.address || '',
+        contactNumber: item.contactNumber || '',
+        medications: JSON.stringify(item.medications || []),
+        totalAmount: item.totalAmount,
+        discount: item.discount || 0,
+        discountPercent: item.discountPercent || 0,
+        payableAmount: item.payableAmount || item.totalAmount,
+        status: item.status,
+        date: item.date,
+      },
+    });
+  };
+
   const renderOrderCard = ({ item }: any) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+    <TouchableOpacity 
+      style={styles.card} 
+      activeOpacity={0.8}
+      onPress={() => handleOrderPress(item)}
+    >
       <View style={styles.cardHeader}>
         <Text style={styles.orderId}>{item.orderId}</Text>
         <View
@@ -130,19 +174,30 @@ const CompletedScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8 * scale) }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <TouchableOpacity 
+            onPress={handleBackPress} 
+            style={styles.backBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={24 * scale} color="#fff" />
+          </TouchableOpacity>
           <View style={styles.logoBox}>
             <Ionicons name="checkmark-circle" size={24 * scale} color="#fff" />
           </View>
-          <Text style={styles.headerTitle}>COMPLETED ORDERS</Text>
+          <Text style={styles.headerTitle}>
+            COMPLETED ORDERS
+          </Text>
         </View>
       </View>
 
-      {/* Filters */}
-      <View style={styles.filtersContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+        {/* Filters */}
+        <View style={styles.filtersContainer}>
         <View style={styles.searchRow}>
           <Ionicons name="search-outline" size={18 * scale} color={COLORS.text} style={{ marginRight: 8 * scale }} />
           <TextInput
@@ -185,11 +240,16 @@ const CompletedScreen = () => {
           <Text style={styles.emptySubtitle}>Completed orders will appear here once they are finished.</Text>
         </View>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.surface,
@@ -200,18 +260,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 16 * scale,
-    paddingTop: 8 * scale,
     paddingBottom: 8 * scale,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     borderBottomLeftRadius: 20 * scale,
     borderBottomRightRadius: 20 * scale,
   },
+  backBtn: {
+    marginRight: 12 * scale,
+    padding: 4 * scale,
+    zIndex: 1,
+  },
   logoBox: {
-    width: 32 * scale,
-    height: 32 * scale,
-    backgroundColor: COLORS.primaryAlt,
-    borderRadius: 8 * scale,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8 * scale,
@@ -222,6 +282,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: FONTS.bold,
     letterSpacing: 1,
+    flex: 1,
   },
   filtersContainer: {
     paddingHorizontal: 16 * scale,

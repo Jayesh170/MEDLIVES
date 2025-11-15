@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Modal } from 'react-native';
+import { Dimensions, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Modal } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -505,9 +505,10 @@ const CustomersScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8 * scale) }]}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.replace('/')}
@@ -535,8 +536,9 @@ const CustomersScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
         <View style={styles.searchRow}>
           <Ionicons name="search-outline" size={18 * scale} color={COLORS.text} style={{ marginRight: 8 * scale }} />
           <TextInput
@@ -634,11 +636,16 @@ const CustomersScreen = () => {
       )}
 
       {renderFilterModal()}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.surface,
@@ -648,7 +655,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 16 * scale,
-    paddingTop: 8 * scale,
     paddingBottom: 8 * scale,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,

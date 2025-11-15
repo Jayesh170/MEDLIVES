@@ -3,7 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { Alert, Dimensions, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '../src/services/api';
@@ -322,9 +322,10 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8 * scale) }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={styles.logoBox}>
             <MaterialIcons name="local-hospital" size={24 * scale} color="#fff" />
@@ -338,7 +339,8 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
         </View>
       </View>
 
-      {/* Orders List with sticky filter header and metrics only when there are orders */}
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+        {/* Orders List with sticky filter header and metrics only when there are orders */}
       {filteredOrders.length > 0 ? (
         <FlatList
           data={filteredOrders}
@@ -491,19 +493,24 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
 
 
       {/* AddOrder Modal */}
-      <AddOrder
-        visible={showAddOrder}
-        onClose={() => setShowAddOrder(false)}
-        onAddOrder={handleAddOrder}
-        existingOrdersCount={orders.length}
-      />
-    </SafeAreaView>
+        <AddOrder
+          visible={showAddOrder}
+          onClose={() => setShowAddOrder(false)}
+          onAddOrder={handleAddOrder}
+          existingOrdersCount={orders.length}
+        />
+      </SafeAreaView>
+    </View>
   );
 });
 
 export default HomeScreen;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.surface,
@@ -514,7 +521,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 16 * scale,
-    paddingTop: 8 * scale,
     paddingBottom: 8 * scale,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,

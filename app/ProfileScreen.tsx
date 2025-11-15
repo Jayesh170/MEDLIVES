@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -146,18 +146,18 @@ const ProfileScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8 * scale) }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={styles.logoBox}>
-            <Ionicons name="person" size={24 * scale} color="#fff" />
-          </View>
+          <Ionicons name="person" size={24 * scale} color="#fff" style={{ marginRight: 8 * scale }} />
           <Text style={styles.headerTitle}>PROFILE</Text>
         </View>
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Profile Info Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
@@ -220,11 +220,16 @@ const ProfileScreen = () => {
           <Text style={styles.copyrightText}>© 2024 Omkar Medical</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.surface,
@@ -235,21 +240,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 16 * scale,
-    paddingTop: 8 * scale,
     paddingBottom: 8 * scale,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     borderBottomLeftRadius: 20 * scale,
     borderBottomRightRadius: 20 * scale,
-  },
-  logoBox: {
-    width: 32 * scale,
-    height: 32 * scale,
-    backgroundColor: COLORS.primaryAlt,
-    borderRadius: 8 * scale,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8 * scale,
   },
   headerTitle: {
     color: '#fff',
@@ -258,7 +253,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
     letterSpacing: 1,
   },
-  container: {
+  scrollContainer: {
     flex: 1,
     paddingHorizontal: 16 * scale,
   },
