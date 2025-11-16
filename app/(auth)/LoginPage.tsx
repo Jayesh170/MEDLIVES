@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
+import { apiService } from "../../src/services/api";
 
 import {
   Dimensions,
@@ -77,6 +78,7 @@ const LoginPage = () => {
     password: "",
   });
   const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const params = useLocalSearchParams();
@@ -93,24 +95,40 @@ const LoginPage = () => {
     }
   }, [params.tenantCode, params.userId, params.password]);
 
-  // Login validation function
-  const handleLogin = (values: { tenantCode: string; userId: string; password: string }) => {
+  // Login validation function - Now uses API
+  const handleLogin = async (values: { tenantCode: string; userId: string; password: string }) => {
     setLoginError("");
+    setIsLoggingIn(true);
     
-    // Check if credentials match the ones from registration
-    if (
-      params.tenantCode &&
-      params.userId &&
-      params.password &&
-      values.tenantCode === params.tenantCode &&
-      values.userId === params.userId &&
-      values.password === params.password
-    ) {
-      // Successful login - navigate to HomeScreen
-      router.replace("/");
-    } else {
-      // Invalid credentials
-      setLoginError("Invalid credentials. Please check your Tenant Code, User ID, and Password.");
+    try {
+      // Convert userId to number for API call
+      const userIdNumber = parseInt(values.userId, 10);
+      
+      if (isNaN(userIdNumber)) {
+        setLoginError("Invalid User ID format");
+        setIsLoggingIn(false);
+        return;
+      }
+
+      console.log("Attempting login with:", { userId: userIdNumber, password: "***" });
+      
+      // Call the API to authenticate
+      const response = await apiService.login(userIdNumber, values.password);
+      
+      if (response.success && response.data?.token) {
+        console.log("Login successful!");
+        // Successful login - navigate to HomeScreen
+        router.replace("/");
+      } else {
+        // Invalid credentials
+        setLoginError(response.error || "Invalid credentials. Please check your User ID and Password.");
+        console.log("Login failed:", response.error);
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -262,11 +280,18 @@ const LoginPage = () => {
 
                 {/* Login Button */}
                 <TouchableOpacity
-                  style={[styles.loginButton, { backgroundColor: theme.buttonBg }]}
+                  style={[
+                    styles.loginButton, 
+                    { 
+                      backgroundColor: theme.buttonBg,
+                      opacity: isLoggingIn ? 0.6 : 1
+                    }
+                  ]}
                   onPress={handleSubmit as any}
+                  disabled={isLoggingIn}
                 >
                   <Text style={[styles.loginText, { color: theme.buttonText }]}>
-                    Log In
+                    {isLoggingIn ? "Logging In..." : "Log In"}
                   </Text>
                 </TouchableOpacity>
               </View>

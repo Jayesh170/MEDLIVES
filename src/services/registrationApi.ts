@@ -21,13 +21,22 @@ export interface ApiResponse<T = any> {
     private baseURL: string;
   
     constructor(baseURL?: string) {
+      // Prefer env variable (configure via EXPO_PUBLIC_API_URL)
+      // In Expo, EXPO_PUBLIC_* variables are available via process.env
+      const envUrl = process.env.EXPO_PUBLIC_API_URL as string | undefined;
       if (baseURL) {
         this.baseURL = baseURL;
+      } else if (envUrl) {
+        this.baseURL = envUrl.replace(/\/$/, '');
+        console.log('Using API URL from environment:', this.baseURL);
       } else if (__DEV__) {
-        // Use your computer's IP for mobile device testing with Expo Go
-        this.baseURL = "http://192.168.1.7:5000/api";
+        // Emulator-friendly defaults
+        // Android emulator: 10.0.2.2 → host machine
+        // iOS simulator: localhost
+        this.baseURL = Platform.OS === 'android' ? 'http://10.0.2.2:5000/api' : 'http://localhost:5000/api';
+        console.log('Using default API URL for', Platform.OS, ':', this.baseURL);
       } else {
-        this.baseURL = "https://your-production-server.com/api";
+        this.baseURL = 'https://your-production-server.com/api';
       }
     }
   

@@ -2,13 +2,35 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 // Routes
 import authRoutes from "./src/routes/authRoutes.js";
-import userRoutes from "./src/routes/userRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
 
-dotenv.config();
+// Get current directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from .env file in the backend directory
+const envPath = join(__dirname, ".env");
+console.log("Loading .env from:", envPath);
+dotenv.config({ path: envPath });
+
+// Verify critical environment variables are loaded
+console.log("Environment variables loaded:");
+console.log("- PORT:", process.env.PORT || "5000 (default)");
+console.log("- JWT_SECRET:", process.env.JWT_SECRET ? "✅ Set" : "❌ NOT SET");
+console.log("- MONGO_URI:", process.env.MONGO_URI ? "✅ Set" : "❌ NOT SET");
+console.log("- OTP_EXPIRY_MIN:", process.env.OTP_EXPIRY_MIN || "5 (default)");
+
+if (!process.env.JWT_SECRET) {
+  console.error("⚠️ WARNING: JWT_SECRET is not set! Authentication will fail.");
+  console.error("Please create a .env file in the Medlives-backend directory with JWT_SECRET");
+}
+
 const app = express();
 
 // Middleware

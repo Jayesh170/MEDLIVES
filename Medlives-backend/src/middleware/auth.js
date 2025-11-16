@@ -3,6 +3,14 @@ import User from "../models/User.js";
 
 // Create JWT for a user
 export const generateToken = (user) => {
+  const jwtSecret = process.env.JWT_SECRET;
+  
+  if (!jwtSecret) {
+    console.error("❌ JWT_SECRET is not set in environment variables!");
+    console.error("Available env vars:", Object.keys(process.env).filter(k => k.includes('JWT')));
+    throw new Error("JWT_SECRET is not configured. Please set it in your .env file.");
+  }
+  
   return jwt.sign(
     {
       id: user._id,            // MongoDB _id
@@ -10,7 +18,7 @@ export const generateToken = (user) => {
       tenantCode: user.tenantCode,
       role: user.role,
     },
-    process.env.JWT_SECRET,
+    jwtSecret,
     { expiresIn: "7d" } // token validity
   );
 };
