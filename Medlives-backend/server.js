@@ -46,7 +46,7 @@ app.get("/", (req, res) => {
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/medlives", {
+  .connect(process.env.MONGO_URI || "mongodb+srv://medlives:uSylyUVsjIgbBMmb@cluster1.ylwbhmp.mongodb.net/medlives", {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })

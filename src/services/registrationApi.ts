@@ -25,7 +25,7 @@ export interface ApiResponse<T = any> {
         this.baseURL = baseURL;
       } else if (__DEV__) {
         // Use your computer's IP for mobile device testing with Expo Go
-        this.baseURL = "http://10.21.92.158:5000/api";
+        this.baseURL = "http://192.168.1.7:5000/api";
       } else {
         this.baseURL = "https://your-production-server.com/api";
       }

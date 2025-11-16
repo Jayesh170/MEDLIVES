@@ -23,7 +23,7 @@ const Step2: React.FC<Step2Props> = ({ formik, theme }) => {
         console.log("Sending OTP request for mobile:", values.mobile);
         
         const response = await otpApiService.sendOtp(values.mobile);
-        
+        console.log("Response:", response);
         if (response.success) {
           setShowOtpField(true);
           setIsOtpVerified(false);

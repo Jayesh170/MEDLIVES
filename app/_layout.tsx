@@ -36,7 +36,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
+      <Stack initialRouteName="(auth)/First" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" options={{ title: "Main" }} />
         <Stack.Screen name="(auth)/First" options={{ title: "Welcome" }} />
         <Stack.Screen name="(auth)/Register" options={{ title: "Register" }} />

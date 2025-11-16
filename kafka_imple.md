@@ -1021,7 +1021,7 @@ If issues arise, we can quickly re-enable direct MongoDB writes in the API.
 
 **Development Environment:**
 - Kafka broker address: `localhost:9092`
-- MongoDB URI: `mongodb://localhost:27017/medlives`
+- MongoDB URI: `mongodb+srv://medlives:uSylyUVsjIgbBMmb@cluster1.ylwbhmp.mongodb.net/`
 - Application port: `5000`
 
 **Production Environment:**
