@@ -1,8 +1,30 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, Text, TouchableOpacity, View, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
+const scale = width / 320;
+
+const COLORS = {
+  primary: '#2EC4D6',
+  text: '#0A174E',
+  surface: '#FFFFFF',
+  muted: '#888',
+  success: '#65B924',
+  danger: '#FF2A2A',
+  warning: '#F4A261',
+  border: '#eee',
+  chipBg: '#e0f7fa',
+};
+
+// Font tokens to match the app (see HomeScreen)
+const FONTS = {
+  regular: 'ManropeRegular',
+  semi: 'ManropeSemiBold',
+  bold: 'ManropeBold',
+} as const;
 
 const OrderDetails = () => {
   const params = useLocalSearchParams();
@@ -10,6 +32,7 @@ const OrderDetails = () => {
 
   const {
     orderId,
+    date,
     address,
     contactNumber,
     customerName,
@@ -19,10 +42,20 @@ const OrderDetails = () => {
     discountPercent,
     payableAmount,
     status,
+    deliveryBoy,
+    deliveryBoyPhone,
+    paymentMethod,
+    notes,
   } = params;
 
   const handleCall = () => {
     Linking.openURL(`tel:${contactNumber}`);
+  };
+
+  const handleCallDelivery = () => {
+    if (deliveryBoyPhone) {
+      Linking.openURL(`tel:${deliveryBoyPhone}`);
+    }
   };
 
   // Parse medications if passed as a string (Expo Router serializes arrays/objects)
@@ -42,18 +75,34 @@ const OrderDetails = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24 * scale} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Details</Text>
       </View>
-      <View style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Top info card */}
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.orderTitle}>Order #{orderId}</Text>
-            <View style={styles.statusPill}>
+            <View
+              style={[
+                styles.statusPill,
+                {
+                  backgroundColor:
+                    String(status) === 'paid'
+                      ? COLORS.success
+                      : String(status) === 'credit'
+                      ? COLORS.danger
+                      : COLORS.warning,
+                },
+              ]}
+            >
               <Text style={styles.statusPillText}>{String(status || 'pending').toUpperCase()}</Text>
             </View>
+          </View>
+          <View style={[styles.rowBetween, { marginTop: 6 }]}> 
+            <Text style={styles.label}>Date</Text>
+            <Text style={styles.value}>{(date as string) || '-'}</Text>
           </View>
           <View style={[styles.rowBetween, { marginTop: 8 }]}>
             <Text style={styles.label}>Customer</Text>
@@ -62,15 +111,38 @@ const OrderDetails = () => {
           <View style={[styles.rowBetween, { marginTop: 6 }]}>
             <Text style={styles.label}>Contact</Text>
             <TouchableOpacity onPress={handleCall}>
-              <Text style={[styles.value, { color: '#2EC4D6', textDecorationLine: 'underline' }]}>{contactNumber}</Text>
+              <Text style={[styles.value, { color: COLORS.primary, textDecorationLine: 'underline' }]}>{contactNumber}</Text>
             </TouchableOpacity>
           </View>
           <View style={{ marginTop: 6 }}>
             <Text style={styles.label}>Delivery Address</Text>
             <View style={styles.addressRow}>
               <Text style={[styles.value, { flex: 1 }]}>{address}</Text>
-              <MaterialIcons name="location-pin" size={18} color="#222" />
+              <MaterialIcons name="location-pin" size={18 * scale} color="#222" />
             </View>
+          </View>
+        </View>
+
+        {/* Delivery & Payment */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Delivery & Payment</Text>
+          <View style={[styles.rowBetween, { marginTop: 6 }]}> 
+            <Text style={styles.label}>Delivery Boy</Text>
+            <Text style={styles.value}>{(deliveryBoy as string) || '-'}</Text>
+          </View>
+          <View style={[styles.rowBetween, { marginTop: 6 }]}> 
+            <Text style={styles.label}>Delivery Phone</Text>
+            {deliveryBoyPhone ? (
+              <TouchableOpacity onPress={handleCallDelivery}>
+                <Text style={[styles.value, { color: COLORS.primary, textDecorationLine: 'underline' }]}>{deliveryBoyPhone}</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.value}>-</Text>
+            )}
+          </View>
+          <View style={[styles.rowBetween, { marginTop: 6 }]}> 
+            <Text style={styles.label}>Payment Method</Text>
+            <Text style={styles.value}>{(paymentMethod as string) || '-'}</Text>
           </View>
         </View>
 
@@ -92,6 +164,14 @@ const OrderDetails = () => {
           })}
         </View>
 
+        {/* Notes */}
+        {(notes as string) ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={[styles.value, { marginTop: 4 }]}>{notes as string}</Text>
+          </View>
+        ) : null}
+
         {/* Totals */}
         <View style={styles.card}>
           <View style={styles.amountRow}> 
@@ -107,17 +187,17 @@ const OrderDetails = () => {
             <Text style={styles.payableValue}>₹{Number(payableAmount).toFixed(2)}</Text>
           </View>
           <View style={styles.actionsRow}>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#65B924' }]}>
-              <Ionicons name="checkmark" size={18} color="#fff" />
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.success }]}>
+              <Ionicons name="checkmark" size={18 * scale} color="#fff" />
               <Text style={styles.actionBtnText}>Mark Paid</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FF2A2A' }]}>
-              <Ionicons name="close" size={18} color="#fff" />
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.danger }]}>
+              <Ionicons name="close" size={18 * scale} color="#fff" />
               <Text style={styles.actionBtnText}>Mark Credit</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -125,41 +205,45 @@ const OrderDetails = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2EC4D6',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16 * scale,
+    paddingTop: 8 * scale,
+    paddingBottom: 16 * scale,
+    borderBottomLeftRadius: 20 * scale,
+    borderBottomRightRadius: 20 * scale,
   },
   backBtn: {
-    marginRight: 12,
-    padding: 4,
+    marginRight: 12 * scale,
+    padding: 4 * scale,
   },
   headerTitle: {
+    fontSize: 18 * scale,
     color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: FONTS.semi,
     flex: 1,
     textAlign: 'center',
-    marginRight: 36, // to center title with back button
+    marginRight: 36 * scale, // to center title with back button
   },
   container: {
-    padding: 16,
     flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  content: {
+    padding: 12 * scale,
+    paddingBottom: 24 * scale,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16 * scale,
+    padding: 16 * scale,
+    marginBottom: 10 * scale,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
@@ -172,152 +256,129 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   orderTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 15 * scale,
     color: '#222',
-  },
-  orderId: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 12,
+    fontFamily: FONTS.semi,
   },
   statusPill: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: '#F4A261',
+    paddingVertical: 4 * scale,
+    paddingHorizontal: 10 * scale,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.chipBg,
   },
   statusPillText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 11 * scale,
+    fontFamily: FONTS.semi,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
+  label: {
+    fontSize: 12.5 * scale,
+    color: '#222',
+    fontFamily: FONTS.regular,
+  },
+  value: {
+    fontSize: 13 * scale,
+    color: '#222',
+    fontFamily: FONTS.regular,
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 4,
-  },
-  label: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#222',
-  },
-  value: {
-    fontSize: 14,
-    color: '#222',
   },
   sectionTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 15 * scale,
     color: '#222',
-    marginBottom: 4,
+    marginBottom: 4 * scale,
+    fontFamily: FONTS.semi,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 8 * scale,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.border,
   },
   medName: {
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 14 * scale,
     color: '#222',
+    fontFamily: FONTS.semi,
   },
   medSub: {
-    color: '#888',
-    fontSize: 12,
-    marginTop: 2,
+    color: COLORS.muted,
+    fontSize: 12 * scale,
+    marginTop: 2 * scale,
+    fontFamily: FONTS.regular,
   },
   itemAmt: {
-    fontWeight: 'bold',
-    color: '#0A174E',
-  },
-  medRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 2,
-  },
-  medQty: {
-    color: '#888',
-    fontSize: 13,
-  },
-  medCalc: {
-    fontWeight: 'bold',
-    fontSize: 13,
-    color: '#222',
-  },
-  amountSection: {
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    paddingTop: 10,
+    color: COLORS.text,
+    fontFamily: FONTS.semi,
+    fontSize: 14 * scale,
   },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 2 * scale,
   },
   amountLabel: {
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 13 * scale,
     color: '#222',
+    fontFamily: FONTS.regular,
   },
   amountValue: {
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 14 * scale,
     color: '#222',
+    fontFamily: FONTS.semi,
   },
   discountLabel: {
-    color: '#888',
-    fontSize: 13,
+    color: COLORS.muted,
+    fontSize: 12.5 * scale,
+    fontFamily: FONTS.regular,
   },
   discountValue: {
-    color: '#888',
-    fontSize: 13,
+    color: COLORS.muted,
+    fontSize: 12.5 * scale,
+    fontFamily: FONTS.regular,
   },
   payableRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: 10 * scale,
+    marginBottom: 14 * scale,
   },
   payableLabel: {
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 15 * scale,
     color: '#222',
+    fontFamily: FONTS.semi,
   },
   payableValue: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
+    fontSize: 16 * scale,
+    color: COLORS.text,
+    fontFamily: FONTS.bold,
   },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 8 * scale,
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    borderRadius: 12 * scale,
+    paddingVertical: 10 * scale,
+    paddingHorizontal: 16 * scale,
     gap: 8,
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 4 * scale,
   },
   actionBtnText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontFamily: FONTS.semi,
   },
 });
 
-export default OrderDetails; 
+export default OrderDetails;

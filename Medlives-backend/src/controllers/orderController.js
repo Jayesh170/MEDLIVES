@@ -1,15 +1,34 @@
 import Order from '../models/Order.js';
+import Counter from '../models/Counter.js';
 
 // Create a new order
 export const createOrder = async (req, res) => {
   try {
     const payload = req.body || {};
-    // Auto-generate orderId if not provided
+    // Auto-generate orderId using atomic counter if not provided
     if (!payload.orderId) {
-      // Use count + 1 as simple sequential fallback
-      const count = await Order.countDocuments();
-      payload.orderId = String(count + 1);
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: 'orderId' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+      payload.orderId = String(counter.seq);
     }
+
+    // Ensure date in dd/MM/yy format if not provided
+    if (!payload.date) {
+      const d = new Date();
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+      payload.date = `${dd}/${mm}/${yy}`;
+    }
+
+    // Attach tenantCode from authenticated user so orders are scoped per shop
+    if (!req.user || typeof req.user.tenantCode === 'undefined') {
+      return res.status(400).json({ success: false, error: 'Tenant information missing on user' });
+    }
+    payload.tenantCode = req.user.tenantCode;
 
     const created = await Order.create(payload);
     return res.status(201).json({ success: true, message: 'Order created', data: created });
@@ -23,7 +42,7 @@ export const createOrder = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const { date, status, q } = req.query;
-    const filter = {};
+    const filter = { tenantCode: req.user?.tenantCode };
     if (date) filter.date = date; // expects dd/MM/yy
     if (status && status !== 'all') filter.status = status;
 
@@ -48,7 +67,7 @@ export const getOrders = async (req, res) => {
 // Get single order by id
 export const getOrderById = async (req, res) => {
   try {
-    const item = await Order.findById(req.params.id);
+    const item = await Order.findOne({ _id: req.params.id, tenantCode: req.user?.tenantCode });
     if (!item) return res.status(404).json({ success: false, error: 'Not found' });
     return res.json({ success: true, data: item });
   } catch (err) {
@@ -61,8 +80,8 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body; // paid | credit | pending
-    const item = await Order.findByIdAndUpdate(
-      req.params.id,
+    const item = await Order.findOneAndUpdate(
+      { _id: req.params.id, tenantCode: req.user?.tenantCode },
       { status },
       { new: true }
     );
@@ -77,7 +96,7 @@ export const updateOrderStatus = async (req, res) => {
 // Delete order
 export const deleteOrder = async (req, res) => {
   try {
-    const item = await Order.findByIdAndDelete(req.params.id);
+    const item = await Order.findOneAndDelete({ _id: req.params.id, tenantCode: req.user?.tenantCode });
     if (!item) return res.status(404).json({ success: false, error: 'Order not found' });
     return res.json({ success: true, message: 'Order deleted successfully' });
   } catch (err) {

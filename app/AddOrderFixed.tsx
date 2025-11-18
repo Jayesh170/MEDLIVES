@@ -87,6 +87,9 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       ? formValues.address 
       : `${formValues.flatNo} ${formValues.wing} ${formValues.society}`;
     
+    const orderType: 'delivery' | 'counter' = formValues.orderType || 'delivery';
+    const paymentStatus: 'paid' | 'credit' = formValues.paymentStatus || 'paid';
+
     return {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       date: format(formValues.orderDate, 'dd/MM/yy'),
@@ -102,10 +105,11 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
       discount,
       discountPercent: formValues.discountPercent || 0,
       payableAmount,
-      status: 'pending',
-      deliveryBoy: formValues.deliveryBoy?.name || '',
-      deliveryBoyPhone: formValues.deliveryBoy?.phone || '',
-      paymentMethod: '',
+      orderType,
+      status: orderType === 'counter' ? paymentStatus : 'pending',
+      deliveryBoy: orderType === 'delivery' ? (formValues.deliveryBoy?.name || '') : '',
+      deliveryBoyPhone: orderType === 'delivery' ? (formValues.deliveryBoy?.phone || '') : '',
+      paymentMethod: orderType === 'counter' ? 'counter' : 'delivery',
       notes: formValues.notes || '',
     };
   };
@@ -178,6 +182,11 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
     console.log('handleSubmit called with values:', values);
     try {
       helpers.setSubmitting(true);
+      if ((values.orderType || 'delivery') === 'delivery' && !values.deliveryBoy) {
+        Alert.alert('Delivery Required', 'Please select a delivery boy for delivery orders.');
+        helpers.setSubmitting(false);
+        return;
+      }
       const orderData = transformOrderData(values);
       console.log('Order data transformed:', orderData);
 
@@ -237,6 +246,8 @@ export default function AddOrder({ visible, onClose, onAddOrder, existingOrdersC
             discountPercent: 0,
             notes: '',
             deliveryBoy: null,
+            orderType: 'delivery',
+            paymentStatus: 'paid',
           }}
           validate={() => ({})}
           validateOnChange={false}

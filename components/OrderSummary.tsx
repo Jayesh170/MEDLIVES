@@ -61,6 +61,48 @@ export default function OrderSummary({ values, setFieldValue }: OrderSummaryProp
         <Text style={styles.stepSubtitle}>Review your order details before submitting</Text>
       </View>
 
+      {/* Order Type Selector */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Ionicons name="swap-horizontal" size={20 * scale} color={COLORS.primary} />
+          <Text style={styles.cardTitle}>Order Type</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 10 * scale,
+                marginRight: 6 * scale,
+                borderRadius: 10 * scale,
+                borderWidth: 1,
+                borderColor: values.orderType === 'delivery' ? COLORS.primary : '#E2E8F0',
+                backgroundColor: values.orderType === 'delivery' ? COLORS.chipBg : COLORS.surface,
+                alignItems: 'center',
+              }}
+              onPress={() => setFieldValue('orderType', 'delivery')}
+            >
+              <Text style={{ color: COLORS.text, fontWeight: '600' }}>Delivery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 10 * scale,
+                marginLeft: 6 * scale,
+                borderRadius: 10 * scale,
+                borderWidth: 1,
+                borderColor: values.orderType === 'counter' ? COLORS.primary : '#E2E8F0',
+                backgroundColor: values.orderType === 'counter' ? COLORS.chipBg : COLORS.surface,
+                alignItems: 'center',
+              }}
+              onPress={() => setFieldValue('orderType', 'counter')}
+            >
+              <Text style={{ color: COLORS.text, fontWeight: '600' }}>On Counter</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
       {/* Customer Details Card */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -166,19 +208,58 @@ export default function OrderSummary({ values, setFieldValue }: OrderSummaryProp
           <Text style={styles.cardTitle}>Payment Information</Text>
         </View>
         <View style={styles.cardContent}>
-          <View style={styles.paymentInfo}>
-            <View style={styles.paymentStatus}>
-              <View style={styles.statusIndicator} />
-              <Text style={styles.statusText}>Payment Pending</Text>
+          {values.orderType === 'counter' ? (
+            <View>
+              <Text style={[styles.summaryLabel, { marginBottom: 8 * scale }]}>Payment Status</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10 * scale,
+                    marginRight: 6 * scale,
+                    borderRadius: 10 * scale,
+                    borderWidth: 1,
+                    borderColor: values.paymentStatus === 'paid' ? COLORS.primary : '#E2E8F0',
+                    backgroundColor: values.paymentStatus === 'paid' ? COLORS.chipBg : COLORS.surface,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setFieldValue('paymentStatus', 'paid')}
+                >
+                  <Text style={{ color: COLORS.text, fontWeight: '600' }}>PAID</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10 * scale,
+                    marginLeft: 6 * scale,
+                    borderRadius: 10 * scale,
+                    borderWidth: 1,
+                    borderColor: values.paymentStatus === 'credit' ? COLORS.primary : '#E2E8F0',
+                    backgroundColor: values.paymentStatus === 'credit' ? COLORS.chipBg : COLORS.surface,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setFieldValue('paymentStatus', 'credit')}
+                >
+                  <Text style={{ color: COLORS.text, fontWeight: '600' }}>CREDIT</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text style={styles.paymentNote}>
-              Payment will be collected upon delivery
-            </Text>
-          </View>
+          ) : (
+            <View style={styles.paymentInfo}>
+              <View style={styles.paymentStatus}>
+                <View style={styles.statusIndicator} />
+                <Text style={styles.statusText}>Payment Pending</Text>
+              </View>
+              <Text style={styles.paymentNote}>
+                Payment will be collected upon delivery
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Delivery Assignment */}
+      {/* Delivery Assignment - only for Delivery orders */}
+      {values.orderType === 'delivery' && (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Ionicons name="bicycle" size={20 * scale} color={COLORS.primary} />
@@ -216,6 +297,7 @@ export default function OrderSummary({ values, setFieldValue }: OrderSummaryProp
           </TouchableOpacity>
         </View>
       </View>
+      )}
 
       {/* Order Notes */}
       <View style={styles.card}>

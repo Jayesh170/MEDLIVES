@@ -11,7 +11,9 @@ const MedicationSchema = new mongoose.Schema(
 
 const OrderSchema = new mongoose.Schema(
   {
-    orderId: { type: String, index: true },
+    orderId: { type: String, index: true, unique: true, required: true },
+    tenantCode: { type: Number, required: true, index: true },
+    orderType: { type: String, enum: ['delivery', 'counter'], default: 'delivery' },
     date: { type: String }, // formatted dd/MM/yy to match current UI filters
     customerName: { type: String, required: true },
     address: { type: String, required: true },

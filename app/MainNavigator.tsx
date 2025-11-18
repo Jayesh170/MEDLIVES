@@ -22,13 +22,25 @@ const MainNavigator = () => {
     }
   };
 
-  const handleAddOrder = (newOrder: any) => {
-    // Pass the order to HomeScreen for handling
+  const handleAddOrder = async (newOrder: any): Promise<boolean> => {
+    let ok = true;
     if (homeScreenRef.current && homeScreenRef.current.handleAddOrder) {
-      homeScreenRef.current.handleAddOrder(newOrder);
+      try {
+        ok = await homeScreenRef.current.handleAddOrder(newOrder);
+      } catch (e) {
+        ok = false;
+      }
     }
-    setShowAddOrder(false);
-    setOrdersCount(prev => prev + 1);
+    if (ok) {
+      setShowAddOrder(false);
+      setOrdersCount(prev => prev + 1);
+      if (newOrder?.orderType === 'counter') {
+        setActiveTab('completed');
+      } else {
+        setActiveTab('home');
+      }
+    }
+    return ok;
   };
 
   const renderActiveScreen = () => {

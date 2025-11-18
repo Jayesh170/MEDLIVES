@@ -344,7 +344,7 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
       {filteredOrders.length > 0 ? (
         <FlatList
           data={filteredOrders}
-          keyExtractor={item => item._id || item.id}
+          keyExtractor={(item, index) => String(item?._id || item?.id || item?.orderId || index)}
           renderItem={renderOrderCard}
           contentContainerStyle={[styles.listContent, { paddingBottom: 80 * scale + (insets.bottom || 0) }]}
           ListHeaderComponent={
