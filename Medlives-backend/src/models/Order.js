@@ -27,6 +27,7 @@ const OrderSchema = new mongoose.Schema(
     deliveryBoy: { type: String, default: '' },
     deliveryBoyPhone: { type: String, default: '' },
     paymentMethod: { type: String, default: '' },
+    paymentProofImageUrl: { type: String, default: '' },
     notes: { type: String, default: '' },
   },
   { timestamps: true }

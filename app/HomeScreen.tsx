@@ -1,13 +1,15 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { format, subDays } from 'date-fns';
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+
 import { Alert, Dimensions, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '../src/services/api';
 import AddOrder from './AddOrderFixed';
+import MarkPaidModal from './MarkPaidModal';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -37,7 +39,7 @@ const ordersData: any[] = [];
 const HomeScreen = forwardRef<any, any>((props, ref) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState('today');
+  const [tab, setTab] = useState('all');
   const [orders, setOrders] = useState(ordersData);
   const [filteredOrders, setFilteredOrders] = useState(ordersData);
   const [date, setDate] = useState(new Date());
@@ -47,18 +49,16 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'credit' | 'pending'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [markPaidVisible, setMarkPaidVisible] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<any | null>(null);
 
   const formatINR = (n: number) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const computeFilters = (base: typeof orders) => {
-    let targetDate: Date;
-    if (tab === 'today') targetDate = new Date();
-    else if (tab === 'yesterday') targetDate = subDays(new Date(), 1);
-    else targetDate = date;
+    let list = base;
 
-    const formatted = format(targetDate, 'dd/MM/yy');
-    let list = base.filter(o => o.date === formatted);
-
+    // Only apply status and search filters; do not restrict by date so that
+    // all orders from the backend are visible in the list.
     if (statusFilter !== 'all') {
       list = list.filter(o => (o.status || 'pending').toLowerCase() === statusFilter);
     }
@@ -84,6 +84,15 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
     loadOrders();
     loadUserInfo();
   }, []);
+
+  // Reload orders whenever the Home screen gains focus to ensure we always
+  // reflect the latest data from the backend (including orders created while
+  // the app or backend was restarted).
+  useFocusEffect(
+    useCallback(() => {
+      loadOrders();
+    }, [])
+  );
 
   const loadUserInfo = async () => {
     try {
@@ -158,12 +167,20 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadOrders();
-    setFilteredOrders(computeFilters(orders));
     setRefreshing(false);
   };
 
   const markStatus = (id: string, status: 'paid' | 'credit' | 'pending') => {
     setOrders(prev => prev.map(o => ((o as any)._id === id || (o as any).id === id ? { ...o, status } : o)));
+  };
+
+  const openMarkPaid = (order: any) => {
+    setSelectedOrderForPayment(order);
+    setMarkPaidVisible(true);
+  };
+
+  const handlePaidSuccess = (updatedOrder: any) => {
+    setOrders(prev => prev.map(o => ((o as any)._id === updatedOrder._id || (o as any).id === updatedOrder._id) ? updatedOrder : o));
   };
 
   const deleteOrder = async (id: string) => {
@@ -201,56 +218,68 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
     );
   };
 
-  const renderLeftActions = (item: any) => (
-    <TouchableOpacity
-      style={{
-        backgroundColor: COLORS.success,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 80 * scale,
-        marginVertical: 8 * scale,
-        borderRadius: 12 * scale,
-      }}
-      onPress={() => markStatus(item._id || item.id, 'paid')}
-    >
-      <Ionicons name="checkmark" size={20 * scale} color="#fff" />
-      <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Paid</Text>
-    </TouchableOpacity>
-  );
+  const renderLeftActions = (item: any) => {
+    if ((item.status || '').toLowerCase() === 'paid') {
+      return null;
+    }
+    return (
+      <TouchableOpacity
+        style={{
+          backgroundColor: COLORS.success,
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: 80 * scale,
+          marginVertical: 8 * scale,
+          borderRadius: 12 * scale,
+        }}
+        onPress={() => openMarkPaid(item)}
+      >
+        <Ionicons name="checkmark" size={20 * scale} color="#fff" />
+        <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Paid</Text>
+      </TouchableOpacity>
+    );
+  };
 
-  const renderRightActions = (item: any) => (
-    <View style={{ flexDirection: 'row' }}>
-      <TouchableOpacity
-        style={{
-          backgroundColor: COLORS.danger,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: 80 * scale,
-          marginVertical: 8 * scale,
-          borderRadius: 12 * scale,
-        }}
-        onPress={() => markStatus(item._id || item.id, 'credit')}
-      >
-        <Ionicons name="close" size={20 * scale} color="#fff" />
-        <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Credit</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={{
-          backgroundColor: '#FF4444',
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: 80 * scale,
-          marginVertical: 8 * scale,
-          marginLeft: 4 * scale,
-          borderRadius: 12 * scale,
-        }}
-        onPress={() => deleteOrder(item._id || item.id)}
-      >
-        <Ionicons name="trash" size={20 * scale} color="#fff" />
-        <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Delete</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const renderRightActions = (item: any) => {
+    const status = (item.status || '').toLowerCase();
+    const showCredit = status !== 'credit';
+
+    return (
+      <View style={{ flexDirection: 'row' }}>
+        {showCredit && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: COLORS.danger,
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: 80 * scale,
+              marginVertical: 8 * scale,
+              borderRadius: 12 * scale,
+            }}
+            onPress={() => markStatus(item._id || item.id, 'credit')}
+          >
+            <Ionicons name="close" size={20 * scale} color="#fff" />
+            <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Credit</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#FF4444',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: 80 * scale,
+            marginVertical: 8 * scale,
+            marginLeft: 4 * scale,
+            borderRadius: 12 * scale,
+          }}
+          onPress={() => deleteOrder(item._id || item.id)}
+        >
+          <Ionicons name="trash" size={20 * scale} color="#fff" />
+          <Text style={{ color: '#fff', fontFamily: FONTS.semi, marginTop: 4 * scale }}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const renderOrderCard = ({ item }: any) => (
     <Swipeable renderLeftActions={() => renderLeftActions(item)} renderRightActions={() => renderRightActions(item)}>
@@ -362,6 +391,9 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
                   />
                 </View>
                 <View style={styles.tabs}>
+                  <TouchableOpacity style={[styles.tabBtn, tab === 'all' && styles.tabBtnActive]} onPress={() => handleTabChange('all')}>
+                    <Text style={[styles.tabText, tab === 'all' && styles.tabTextActive]}>ALL</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={[styles.tabBtn, tab === 'today' && styles.tabBtnActive]} onPress={() => handleTabChange('today')}>
                     <Text style={[styles.tabText, tab === 'today' && styles.tabTextActive]}>TODAY</Text>
                   </TouchableOpacity>
@@ -499,6 +531,13 @@ const HomeScreen = forwardRef<any, any>((props, ref) => {
           onAddOrder={handleAddOrder}
           existingOrdersCount={orders.length}
         />
+
+        <MarkPaidModal
+          visible={markPaidVisible}
+          order={selectedOrderForPayment}
+          onClose={() => setMarkPaidVisible(false)}
+          onSuccess={handlePaidSuccess}
+        />
       </SafeAreaView>
     </View>
   );
@@ -583,21 +622,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8 * scale,
   },
   tabBtn: {
-    flex: 1,
+    paddingHorizontal: 14 * scale,
     paddingVertical: 6 * scale,
-    marginHorizontal: 4 * scale,
-    borderRadius: 12 * scale,
+    borderRadius: 16 * scale,
     backgroundColor: COLORS.chipBg,
-    alignItems: 'center',
+    marginHorizontal: 4 * scale,
   },
   tabBtnActive: {
     backgroundColor: COLORS.primary,
   },
   tabText: {
+    fontSize: 11 * scale,
     color: COLORS.text,
-    fontWeight: 'bold',
     fontFamily: FONTS.semi,
-    fontSize: 14 * scale,
+    textAlign: 'center',
   },
   tabTextActive: {
     color: '#fff',

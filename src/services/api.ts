@@ -364,6 +364,17 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  async updateOrderStatus(orderId: string, data: {
+    status: 'paid' | 'credit' | 'pending';
+    paymentMethod?: string;
+    paymentProofImageUrl?: string;
+  }): Promise<ApiResponse> {
+    return this.request(`/orders/${orderId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 // Export singleton instance

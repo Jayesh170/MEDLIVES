@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { Dimensions, FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, Modal } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiService } from '../src/services/api';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -27,91 +28,9 @@ const FONTS = {
   bold: 'ManropeBold',
 };
 
-// Enhanced customer data structure
-const customersData = [
-  {
-    id: '1',
-    name: 'John Doe',
-    phone: '9876543210',
-    society: 'Green Valley',
-    wing: 'A',
-    flatNo: '101',
-    totalOrders: 15,
-    lastOrder: '2024-01-15',
-    creditAmount: 2500,
-    hasCredit: true,
-    hasOrders: true,
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    phone: '9876543211',
-    society: 'Sunshine Apartments',
-    wing: 'B',
-    flatNo: '205',
-    totalOrders: 8,
-    lastOrder: '2024-01-14',
-    creditAmount: 0,
-    hasCredit: false,
-    hasOrders: true,
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    phone: '9876543212',
-    society: 'Others',
-    address: '123 Main Street, City',
-    totalOrders: 22,
-    lastOrder: '2024-01-13',
-    creditAmount: 5000,
-    hasCredit: true,
-    hasOrders: true,
-    status: 'active',
-  },
-  {
-    id: '4',
-    name: 'Sarah Wilson',
-    phone: '9876543213',
-    society: 'Green Valley',
-    wing: 'B',
-    flatNo: '302',
-    totalOrders: 0,
-    lastOrder: null,
-    creditAmount: 0,
-    hasCredit: false,
-    hasOrders: false,
-    status: 'inactive',
-  },
-  {
-    id: '5',
-    name: 'David Brown',
-    phone: '9876543214',
-    society: 'Others',
-    address: '456 Oak Avenue, Downtown',
-    totalOrders: 5,
-    lastOrder: '2024-01-10',
-    creditAmount: 1200,
-    hasCredit: true,
-    hasOrders: true,
-    status: 'active',
-  },
-  {
-    id: '6',
-    name: 'Lisa Davis',
-    phone: '9876543215',
-    society: 'Sunshine Apartments',
-    wing: 'A',
-    flatNo: '103',
-    totalOrders: 12,
-    lastOrder: '2024-01-12',
-    creditAmount: 0,
-    hasCredit: false,
-    hasOrders: true,
-    status: 'active',
-  },
-];
+// Customers are derived from orders on the backend; this initial data is just a placeholder
+// and will be replaced on first load.
+const customersData: any[] = [];
 
 // Societies data
 const societiesData = [
@@ -135,9 +54,9 @@ const societiesData = [
 const CustomersScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [customers, setCustomers] = useState(customersData);
+  const [customers, setCustomers] = useState<any[]>(customersData);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredCustomers, setFilteredCustomers] = useState(customersData);
+  const [filteredCustomers, setFilteredCustomers] = useState<any[]>(customersData);
   const [showFilters, setShowFilters] = useState(false);
   
   // Filter states
@@ -156,6 +75,67 @@ const CustomersScreen = () => {
   const availableFlats = selectedSociety && selectedSociety !== 'Others' && selectedWing
     ? [...new Set(customers.filter(c => c.society === selectedSociety && c.wing === selectedWing).map(c => c.flatNo).filter(Boolean))]
     : [];
+
+  // Load customers from backend orders
+  useEffect(() => {
+    const loadCustomersFromOrders = async () => {
+      try {
+        const res = await apiService.getOrders();
+        if (!res.success || !(res.data as any)?.data) {
+          return;
+        }
+        const orders = (res.data as any).data as any[];
+
+        const map = new Map<string, any>();
+        for (const o of orders) {
+          const name = (o.customerName || '').toString().trim();
+          const phone = (o.contactNumber || '').toString().trim();
+          if (!name && !phone) continue;
+          const key = `${name}::${phone}`;
+          const existing = map.get(key);
+
+          const orderDate = o.date || '';
+          const payable = Number(o.payableAmount || 0);
+          const isCredit = String(o.status).toLowerCase() === 'credit';
+
+          if (!existing) {
+            map.set(key, {
+              id: o._id || o.id || key,
+              name,
+              phone,
+              society: 'Others',
+              address: o.address || '',
+              wing: '',
+              flatNo: '',
+              totalOrders: 1,
+              lastOrder: orderDate,
+              creditAmount: isCredit ? payable : 0,
+              hasCredit: isCredit && payable > 0,
+              hasOrders: true,
+              status: 'active',
+            });
+          } else {
+            existing.totalOrders += 1;
+            // Update lastOrder naively with latest non-empty date
+            if (orderDate) {
+              existing.lastOrder = existing.lastOrder || orderDate;
+            }
+            if (isCredit) {
+              existing.creditAmount += payable;
+              existing.hasCredit = existing.creditAmount > 0;
+            }
+          }
+        }
+
+        const list = Array.from(map.values());
+        setCustomers(list);
+      } catch (e) {
+        console.error('Failed to load customers from orders', e);
+      }
+    };
+
+    loadCustomersFromOrders();
+  }, []);
 
   // Apply filters
   useEffect(() => {

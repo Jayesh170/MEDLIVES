@@ -10,6 +10,11 @@ import authRoutes from "./src/routes/authRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 
+// Kafka services
+import { kafkaProducer } from "./src/services/kafkaProducer.js";
+import { orderPersistenceConsumer } from "./src/consumers/orderPersistenceConsumer.js";
+import { notificationConsumer } from "./src/consumers/notificationConsumer.js";
+
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,6 +29,7 @@ console.log("Environment variables loaded:");
 console.log("- PORT:", process.env.PORT || "5000 (default)");
 console.log("- JWT_SECRET:", process.env.JWT_SECRET ? "✅ Set" : "❌ NOT SET");
 console.log("- MONGO_URI:", process.env.MONGO_URI ? "✅ Set" : "❌ NOT SET");
+console.log("- KAFKA_BROKERS:", process.env.KAFKA_BROKERS || "localhost:9092 (default)");
 console.log("- OTP_EXPIRY_MIN:", process.env.OTP_EXPIRY_MIN || "5 (default)");
 
 if (!process.env.JWT_SECRET) {
@@ -66,17 +72,108 @@ app.get("/", (req, res) => {
   res.send("✅ Server is running...");
 });
 
+// Health check endpoint
+app.get("/health", async (req, res) => {
+  try {
+    const kafkaHealth = await kafkaProducer.healthCheck();
+    const orderConsumerHealth = await orderPersistenceConsumer.healthCheck();
+    const notificationConsumerHealth = await notificationConsumer.healthCheck();
+
+    res.json({
+      status: "healthy",
+      services: {
+        kafka: kafkaHealth,
+        orderPersistenceConsumer: orderConsumerHealth,
+        notificationConsumer: notificationConsumerHealth,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "unhealthy",
+      error: error.message,
+    });
+  }
+});
+
+// Initialize Kafka and start consumers
+async function initializeKafka() {
+  try {
+    // Connect Kafka producer
+    await kafkaProducer.connect();
+
+    // Start consumers
+    // Note: Consumers will run in background and process messages asynchronously
+    orderPersistenceConsumer.start().catch((error) => {
+      console.error("❌ Failed to start order persistence consumer:", error);
+    });
+
+    notificationConsumer.start().catch((error) => {
+      console.error("❌ Failed to start notification consumer:", error);
+    });
+
+    console.log("✅ Kafka services initialized");
+  } catch (error) {
+    console.error("❌ Error initializing Kafka:", error);
+    // Don't exit - allow server to start even if Kafka fails
+    // Kafka will retry connection automatically
+  }
+}
+
+// Graceful shutdown handler
+async function gracefulShutdown(signal) {
+  console.log(`\n${signal} received. Starting graceful shutdown...`);
+
+  try {
+    // Stop accepting new requests
+    if (server) {
+      await new Promise((resolve) => {
+        server.close(() => {
+          console.log("✅ HTTP server closed");
+          resolve();
+        });
+      });
+    }
+
+    // Stop Kafka consumers
+    await orderPersistenceConsumer.stop();
+    await notificationConsumer.stop();
+
+    // Disconnect Kafka producer
+    await kafkaProducer.disconnect();
+
+    // Close MongoDB connection
+    await mongoose.connection.close();
+    console.log("✅ MongoDB connection closed");
+
+    console.log("✅ Graceful shutdown completed");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error during graceful shutdown:", error);
+    process.exit(1);
+  }
+}
+
+// Register shutdown handlers
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
 // MongoDB connection
+let server;
 mongoose
   .connect(process.env.MONGO_URI || "mongodb+srv://medlives:uSylyUVsjIgbBMmb@cluster1.ylwbhmp.mongodb.net/medlives", {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
-  .then(() => {
+  .then(async () => {
     console.log("✅ MongoDB connected");
+    
+    // Initialize Kafka after MongoDB is connected
+    await initializeKafka();
+    
     // Start server only after DB connects
-    app.listen(process.env.PORT || 5000, () => {
+    server = app.listen(process.env.PORT || 5000, () => {
       console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
+      console.log(`📊 Health check: http://localhost:${process.env.PORT || 5000}/health`);
     });
   })
   .catch((err) => {

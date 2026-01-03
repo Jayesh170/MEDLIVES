@@ -1,8 +1,10 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+
 import { Linking, StyleSheet, Text, TouchableOpacity, View, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MarkPaidModal from './MarkPaidModal';
 
 const { width } = Dimensions.get('window');
 const scale = width / 320;
@@ -28,6 +30,16 @@ const FONTS = {
 
 const OrderDetails = () => {
   const params = useLocalSearchParams();
+  const [markPaidVisible, setMarkPaidVisible] = useState(false);
+
+  const orderForPayment = useMemo(() => {
+    return {
+      _id: params._id,
+      orderId: params.orderId,
+      customerName: params.customerName,
+    } as any;
+  }, [params]);
+
   const router = useRouter();
 
   const {
@@ -186,18 +198,35 @@ const OrderDetails = () => {
             <Text style={styles.payableLabel}>Payable Amount</Text>
             <Text style={styles.payableValue}>₹{Number(payableAmount).toFixed(2)}</Text>
           </View>
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.success }]}>
-              <Ionicons name="checkmark" size={18 * scale} color="#fff" />
-              <Text style={styles.actionBtnText}>Mark Paid</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.danger }]}>
-              <Ionicons name="close" size={18 * scale} color="#fff" />
-              <Text style={styles.actionBtnText}>Mark Credit</Text>
-            </TouchableOpacity>
-          </View>
+
+          {String(status || 'pending') === 'pending' && (
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
+                onPress={() => setMarkPaidVisible(true)}
+              >
+                <Ionicons name="checkmark" size={18 * scale} color="#fff" />
+                <Text style={styles.actionBtnText}>Mark Paid</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.danger }]} onPress={() => console.log('Mark Credit')}>
+                <Ionicons name="close" size={18 * scale} color="#fff" />
+                <Text style={styles.actionBtnText}>Mark Credit</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
+
+      <MarkPaidModal
+        visible={markPaidVisible}
+        order={orderForPayment}
+        onClose={() => setMarkPaidVisible(false)}
+        onSuccess={() => {
+          // For now just close; HomeScreen reloads orders on focus.
+          setMarkPaidVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 };

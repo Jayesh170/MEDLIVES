@@ -1,5 +1,6 @@
 import Order from '../models/Order.js';
 import Counter from '../models/Counter.js';
+import { kafkaProducer } from '../services/kafkaProducer.js';
 
 // Create a new order
 export const createOrder = async (req, res) => {
@@ -30,7 +31,18 @@ export const createOrder = async (req, res) => {
     }
     payload.tenantCode = req.user.tenantCode;
 
+    // DUAL-WRITE MODE: Write to MongoDB directly (for backward compatibility)
+    // AND publish to Kafka (for event-driven processing)
+    // TODO: Once Kafka consumers are stable, remove direct MongoDB write
     const created = await Order.create(payload);
+
+    // Publish order creation event to Kafka (non-blocking)
+    kafkaProducer.publishOrderEvent('order.created', created.toObject(), req.user.tenantCode)
+      .catch((error) => {
+        console.error('Failed to publish order event to Kafka:', error);
+        // Don't fail the request if Kafka fails
+      });
+
     return res.status(201).json({ success: true, message: 'Order created', data: created });
   } catch (err) {
     console.error('createOrder error', err);
@@ -79,13 +91,58 @@ export const getOrderById = async (req, res) => {
 // Update order status
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body; // paid | credit | pending
+    const { status, paymentMethod, paymentProofImageUrl } = req.body; // status: paid | credit | pending
+    
+    // Get current order to capture old status
+    // First fetch the existing order; use tenantCode from user if present, otherwise
+    // fall back to looking it up by id alone (for safety in case user context is missing).
+    const currentFilter = req.user && typeof req.user.tenantCode !== 'undefined'
+      ? { _id: req.params.id, tenantCode: req.user.tenantCode }
+      : { _id: req.params.id };
+
+    const currentOrder = await Order.findOne(currentFilter);
+    if (!currentOrder) {
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
+
+    const oldStatus = currentOrder.status;
+    const resolvedTenantCode = req.user && typeof req.user.tenantCode !== 'undefined'
+      ? req.user.tenantCode
+      : currentOrder.tenantCode;
+
+    // DUAL-WRITE MODE: Update MongoDB directly AND publish to Kafka
+    const update = { status };
+    if (typeof paymentMethod === 'string') {
+      update.paymentMethod = paymentMethod;
+    }
+    if (typeof paymentProofImageUrl === 'string') {
+      update.paymentProofImageUrl = paymentProofImageUrl;
+    }
+
     const item = await Order.findOneAndUpdate(
-      { _id: req.params.id, tenantCode: req.user?.tenantCode },
-      { status },
+      { _id: currentOrder._id, tenantCode: resolvedTenantCode },
+      update,
       { new: true }
     );
-    if (!item) return res.status(404).json({ success: false, error: 'Not found' });
+
+    // Publish status update event to Kafka (non-blocking)
+    kafkaProducer.publishStatusUpdate(
+      {
+        orderId: item.orderId,
+        tenantCode: resolvedTenantCode,
+        oldStatus,
+        newStatus: status,
+        changedBy: req.user?.userId || req.user?._id?.toString() || 'system',
+        paymentMethod: item.paymentMethod,
+        paymentProofImageUrl: item.paymentProofImageUrl,
+        data: item.toObject(),
+      },
+      resolvedTenantCode
+    ).catch((error) => {
+      console.error('Failed to publish status update event to Kafka:', error);
+      // Don't fail the request if Kafka fails
+    });
+
     return res.json({ success: true, message: 'Status updated', data: item });
   } catch (err) {
     console.error('updateOrderStatus error', err);
@@ -98,6 +155,14 @@ export const deleteOrder = async (req, res) => {
   try {
     const item = await Order.findOneAndDelete({ _id: req.params.id, tenantCode: req.user?.tenantCode });
     if (!item) return res.status(404).json({ success: false, error: 'Order not found' });
+
+    // Publish order deletion event to Kafka (non-blocking)
+    kafkaProducer.publishOrderEvent('order.deleted', item.toObject(), req.user.tenantCode)
+      .catch((error) => {
+        console.error('Failed to publish order deletion event to Kafka:', error);
+        // Don't fail the request if Kafka fails
+      });
+
     return res.json({ success: true, message: 'Order deleted successfully' });
   } catch (err) {
     console.error('deleteOrder error', err);

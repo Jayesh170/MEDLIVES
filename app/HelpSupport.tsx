@@ -18,6 +18,7 @@ const COLORS = {
   danger: '#FF2A2A',
   warning: '#F4A261',
   info: '#3B82F6',
+  chipBg: '#e0f7fa',
 };
 
 const FONTS = {
@@ -28,7 +29,7 @@ const FONTS = {
 
 const HelpSupport = () => {
   const router = useRouter();
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   const supportOptions = [
     {
