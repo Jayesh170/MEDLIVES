@@ -153,7 +153,6 @@ class ApiService {
           error: `Server returned ${response.status} ${response.statusText}. Please check if the API endpoint is correct.`,
         };
       }
-
       if (!response.ok) {
         return {
           success: false,

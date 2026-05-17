@@ -32,7 +32,7 @@ class OrderPersistenceConsumer {
         topics: [KAFKA_TOPICS.ORDER_EVENTS, KAFKA_TOPICS.STATUS_UPDATES],
         fromBeginning: false, // Start from latest messages
       });
-
+      
       this.isRunning = true;
       this.startBatchTimer();
 
